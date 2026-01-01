@@ -1,6 +1,9 @@
 import * as Joi from 'joi';
 
 export const validationSchema = Joi.object({
+  // DB
+  DATABASE_URL: Joi.string().required(),
+
   // APP
   APP_FULL_NAME: Joi.string().required(),
   APP_NAME: Joi.string().required(),

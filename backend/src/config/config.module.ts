@@ -4,6 +4,7 @@ import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import appConfig from './conf/app.config';
 import authConfig from './conf/auth.config';
 import corsConfig from './conf/cors.config';
+import dbConfig from './conf/db.config';
 
 import { validationSchema } from './validation.schema';
 
@@ -11,7 +12,7 @@ import { validationSchema } from './validation.schema';
   imports: [
     NestConfigModule.forRoot({
       envFilePath: '.env',
-      load: [appConfig, authConfig, corsConfig],
+      load: [appConfig, authConfig, corsConfig, dbConfig],
       isGlobal: true,
       validationSchema: validationSchema,
     }),
