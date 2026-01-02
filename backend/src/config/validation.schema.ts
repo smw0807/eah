@@ -13,6 +13,8 @@ export const validationSchema = Joi.object({
 
   BCRYPT_SALT: Joi.string().required(),
   JWT_SECRET: Joi.string().required(),
+  ACCESS_EXPIRED_DATE: Joi.number().required(),
+  REFRESH_EXPIRED_DATE: Joi.number().required(),
   // CORS
   CORS_ORIGIN: Joi.string().required(),
   CORS_METHODS: Joi.string().required(),

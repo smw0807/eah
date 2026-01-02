@@ -8,5 +8,6 @@ import { UtilsModule } from 'src/utils/utils.module';
   imports: [PrismaModule, UtilsModule],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService],
 })
 export class UsersModule {}
