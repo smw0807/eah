@@ -42,7 +42,7 @@ export class AuthService {
 
   generateToken(user: User) {
     const payload = {
-      sub: user.id,
+      id: user.id,
       email: user.email,
       nickname: user.nickname,
     };
