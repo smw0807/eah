@@ -1,4 +1,4 @@
-import { Reflector } from '@nestjs/core';
+import { SetMetadata } from '@nestjs/common';
 import { Role } from 'generated/prisma/enums';
 
-export const RBAC = Reflector.createDecorator<Role>();
+export const RBAC = (...roles: Role[]) => SetMetadata('roles', roles);
