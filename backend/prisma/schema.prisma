@@ -61,6 +61,7 @@ model UserAccount {
 
 model Category {
   id        Int        @id @default(autoincrement())
+  code      String     @unique
   name      String
 
   parentId  Int?       @map("parent_id")
@@ -71,7 +72,7 @@ model Category {
   auctions  Auction[]  // 이 카테고리를 사용하는 경매들
 
   // 같은 부모 아래에서는 이름 유니크
-  @@unique([parentId, name])
+  @@unique([parentId, code])
 
   @@index([parentId])
 
