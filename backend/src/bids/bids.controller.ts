@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Put, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import { BidsService } from './bids.service';
 import { BadRequestException } from '@nestjs/common';
 import { Body } from '@nestjs/common';
@@ -23,6 +31,29 @@ export class BidsController {
   @UseGuards(AuthGuard)
   async getUserBids(@CurrentUser() user: User) {
     return this.bidsService.getUserBids(user.id);
+  }
+
+  // 사용자 입찰 내역 조회 - 닉네임
+  @Get('user/nickname/:nickname')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RBAC(Role.ADMIN)
+  async getUserBidsByNickname(@Param('nickname') nickname: string) {
+    return this.bidsService.getUserBidsByNickname(nickname);
+  }
+
+  // 사용자 입찰 내역 조회
+  @Get('user/:userId')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RBAC(Role.ADMIN)
+  async getUserBidsById(@Param('userId') userId: number) {
+    return this.bidsService.getUserBidsById(userId);
+  }
+
+  // 경매 입찰 내역 조회
+  @Get('auction/:auctionId')
+  @UseGuards(AuthGuard)
+  async getAuctionBids(@Param('auctionId') auctionId: number) {
+    return this.bidsService.getAuctionBids(auctionId);
   }
 
   // 입찰 생성
