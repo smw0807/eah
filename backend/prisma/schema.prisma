@@ -69,7 +69,8 @@ model Category {
   children  Category[] @relation("CategoryHierarchy")
 
   // relations
-  auctions  Auction[]  // 이 카테고리를 사용하는 경매들
+  auctionsAsCategory    Auction[]  @relation("AuctionCategory")    // 이 카테고리를 사용하는 경매들
+  auctionsAsSubCategory Auction[]  @relation("AuctionSubCategory") // 이 서브카테고리를 사용하는 경매들
 
   // 같은 부모 아래에서는 이름 유니크
   @@unique([parentId, code])
@@ -91,6 +92,7 @@ model Auction {
   buyoutPrice   Decimal?       @db.Decimal(12, 2) @map("buyout_price")
 
   categoryId    Int?           @map("category_id")
+  subCategoryId Int?           @map("sub_category_id")
   imageUrl      String?        @map("image_url")
   startAt       DateTime       @map("start_at")
   endAt         DateTime       @map("end_at")
@@ -104,7 +106,8 @@ model Auction {
   // winningBidId = 낙찰된 입찰(bids.id)의 아이디
   winningBid    Bid?           @relation("WinningBid", fields: [winningBidId], references: [id])
 
-  category      Category?      @relation(fields: [categoryId], references: [id])
+  category      Category?      @relation("AuctionCategory", fields: [categoryId], references: [id])
+  subCategory   Category?      @relation("AuctionSubCategory", fields: [subCategoryId], references: [id])
 
   @@map("auctions")
 
