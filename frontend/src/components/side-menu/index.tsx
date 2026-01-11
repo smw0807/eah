@@ -93,12 +93,17 @@ export default function SideMenu() {
                 <label className="text-foreground mb-2 block text-sm font-medium">
                   검색
                 </label>
-                <div className="flex gap-1">
-                  <Input type="text" placeholder="상품명 검색" />
-                  <Button type="submit" variant="outline">
-                    검색
-                  </Button>
-                </div>
+                <Input type="text" placeholder="상품명 검색" />
+              </div>
+              <div>
+                <Button
+                  type="submit"
+                  variant="default"
+                  size="full"
+                  className="hover:bg-muted-foreground p-2"
+                >
+                  검색
+                </Button>
               </div>
             </div>
           </div>
