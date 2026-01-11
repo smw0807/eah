@@ -1,5 +1,6 @@
 import { Link, Outlet } from "react-router";
-import { Home } from "lucide-react";
+import logo from "@/assets/eah-logo.png";
+import logoText from "@/assets/EAH.png";
 
 export default function DefaultLayout() {
   return (
@@ -13,14 +14,14 @@ export default function DefaultLayout() {
               className="text-primary flex items-center gap-2 text-xl font-bold transition-opacity hover:opacity-80"
             >
               <div className="flex items-center gap-1.5">
-                <Home className="text-primary size-5" strokeWidth={2.5} />
+                <img src={logo} alt="logo" className="size-20" />
+                <span>EAH</span>
               </div>
-              <span>EAH</span>
             </Link>
 
             {/* 중앙 제목 */}
-            <h1 className="text-foreground text-xl font-semibold">
-              모두의 경매장
+            <h1 className="text-foreground flex items-center gap-2 text-xl font-semibold">
+              <img src={logoText} alt="logo" className="size-30" />
             </h1>
 
             {/* 마이페이지 */}
