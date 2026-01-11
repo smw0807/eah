@@ -12,7 +12,6 @@ export default function DefaultLayout() {
               to="/"
               className="text-primary flex items-center gap-2 text-xl font-bold transition-opacity hover:opacity-80"
             >
-              {" "}
               <span>EAH</span>
             </Link>
 
