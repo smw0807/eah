@@ -77,4 +77,26 @@ export class AuthController {
       return res.status(401).json({ message: 'Unauthorized' });
     }
   }
+
+  @Post('verify-token')
+  async verifyToken(
+    @Headers('Authorization') authorization: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const token = authorization.split(' ');
+      if (!token) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      const tokenValue = token[1];
+      if (!tokenValue) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      const decoded = await this.authService.verifyToken(tokenValue);
+      return res.status(200).json({ message: 'Token verified', decoded });
+    } catch (error) {
+      this.logger.error(error, 'verifyToken');
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  }
 }
