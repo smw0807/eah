@@ -1,9 +1,12 @@
+import ModalProvider from "./provider/ModalProvider";
 import Router from "./router";
 
 function App() {
   return (
     <>
-      <Router />
+      <ModalProvider>
+        <Router />
+      </ModalProvider>
     </>
   );
 }
