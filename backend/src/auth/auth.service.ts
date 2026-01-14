@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'generated/prisma/browser';
@@ -25,17 +25,6 @@ export class AuthService {
   }
 
   async signup(input: InputSignup): Promise<User> {
-    const { nickname, email } = input;
-    // 닉네임 중복 체크
-    const isNicknameExists = await this.usersService.checkNickname(nickname);
-    if (isNicknameExists) {
-      throw new BadRequestException('닉네임이 이미 존재합니다.');
-    }
-    // 이메일 중복 체크
-    const isEmailExists = await this.usersService.checkEmail(email);
-    if (isEmailExists) {
-      throw new BadRequestException('이메일이 이미 존재합니다.');
-    }
     const user = await this.usersService.createUser(input);
     return user;
   }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Headers,
@@ -31,12 +32,23 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
+      const { nickname, email } = input;
+      // 닉네임 중복 체크
+      const isNicknameExists = await this.usersService.checkNickname(nickname);
+      if (isNicknameExists) {
+        throw new BadRequestException('닉네임이 이미 존재합니다.');
+      }
+      // 이메일 중복 체크
+      const isEmailExists = await this.usersService.checkEmail(email);
+      if (isEmailExists) {
+        throw new BadRequestException('이메일이 이미 존재합니다.');
+      }
       const user = await this.authService.signup(input);
       this.logger.log(user, '회원가입 성공!');
       return res.status(201).json({ message: 'Signup successful' });
     } catch (error) {
       this.logger.error(error, 'signup');
-      return res.status(400).json({ message: 'Signup failed' });
+      throw error;
     }
   }
 
