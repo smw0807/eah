@@ -45,10 +45,14 @@ export class AuthController {
       }
       const user = await this.authService.signup(input);
       this.logger.log(user, '회원가입 성공!');
-      return res.status(201).json({ message: 'Signup successful' });
+      return res
+        .status(201)
+        .json({ message: '회원가입 성공', statusCode: 201 });
     } catch (error) {
       this.logger.error(error, 'signup');
-      throw error;
+      return res
+        .status(500)
+        .json({ message: '회원가입 실패', statusCode: 500 });
     }
   }
 
@@ -60,7 +64,7 @@ export class AuthController {
     try {
       const token = authorization.split(' ');
       if (token.length !== 2) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('토큰이 유효하지 않습니다.');
       }
       const tokenValue = token[1];
       const decoded = Buffer.from(tokenValue, 'base64').toString('utf-8');
@@ -69,24 +73,31 @@ export class AuthController {
 
       const user = await this.usersService.getUser('email', email);
       if (!user) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException(
+          '이메일 또는 비밀번호가 일치하지 않습니다.',
+        );
       }
       const isPasswordValid = await this.authUtils.comparePassword(
         password,
         user.passwordHash,
       );
       if (!isPasswordValid) {
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException(
+          '이메일 또는 비밀번호가 일치하지 않습니다.',
+        );
       }
       const { access_token, refresh_token } =
         this.authService.generateToken(user);
 
-      return res
-        .status(200)
-        .json({ message: 'Signin successful', access_token, refresh_token });
+      return res.status(200).json({
+        message: '로그인 성공',
+        statusCode: 200,
+        access_token,
+        refresh_token,
+      });
     } catch (error) {
       this.logger.error(error, 'signin');
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({ message: '로그인 실패', statusCode: 401 });
     }
   }
 
@@ -98,17 +109,21 @@ export class AuthController {
     try {
       const token = authorization.split(' ');
       if (!token) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('토큰이 유효하지 않습니다.');
       }
       const tokenValue = token[1];
       if (!tokenValue) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('토큰이 유효하지 않습니다.');
       }
       const decoded = await this.authService.verifyToken(tokenValue);
-      return res.status(200).json({ message: 'Token verified', decoded });
+      return res
+        .status(200)
+        .json({ message: '토큰 검증 성공', statusCode: 200, decoded });
     } catch (error) {
       this.logger.error(error, 'verifyToken');
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res
+        .status(401)
+        .json({ message: '토큰 검증 실패', statusCode: 401 });
     }
   }
 }
