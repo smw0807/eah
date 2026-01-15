@@ -2,7 +2,6 @@ import { useSigninModal } from "@/stores/signin-modal";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -59,22 +58,20 @@ export default function SignInModal() {
         <DialogHeader>
           <DialogTitle>로그인</DialogTitle>
         </DialogHeader>
-        <DialogDescription>
-          <div className="flex flex-col gap-2">
-            <Input
-              type="email"
-              placeholder="이메일"
-              value={email}
-              onChange={handleEmailChange}
-            />
-            <Input
-              type="password"
-              placeholder="비밀번호"
-              value={password}
-              onChange={handlePasswordChange}
-            />
-          </div>
-        </DialogDescription>
+        <div className="flex flex-col gap-2">
+          <Input
+            type="email"
+            placeholder="이메일"
+            value={email}
+            onChange={handleEmailChange}
+          />
+          <Input
+            type="password"
+            placeholder="비밀번호"
+            value={password}
+            onChange={handlePasswordChange}
+          />
+        </div>
         <DialogFooter>
           <div className="flex w-full flex-col gap-2">
             <Button type="submit" onClick={handleSubmit}>

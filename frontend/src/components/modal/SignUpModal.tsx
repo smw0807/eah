@@ -3,7 +3,6 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -62,42 +61,40 @@ export default function SignUpModal() {
         <DialogHeader>
           <DialogTitle>회원가입</DialogTitle>
         </DialogHeader>
-        <DialogDescription>
-          <div className="flex flex-col gap-2">
-            <Input
-              type="email"
-              placeholder="이메일"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setEmail(e.target.value)
-              }
-            />
-            <Input
-              type="password"
-              placeholder="비밀번호"
-              value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setPassword(e.target.value)
-              }
-            />
-            <Input
-              type="text"
-              placeholder="이름"
-              value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setName(e.target.value)
-              }
-            />
-            <Input
-              type="text"
-              placeholder="닉네임"
-              value={nickname}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNickname(e.target.value)
-              }
-            />
-          </div>
-        </DialogDescription>
+        <div className="flex flex-col gap-2">
+          <Input
+            type="email"
+            placeholder="이메일"
+            value={email}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setEmail(e.target.value)
+            }
+          />
+          <Input
+            type="password"
+            placeholder="비밀번호"
+            value={password}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setPassword(e.target.value)
+            }
+          />
+          <Input
+            type="text"
+            placeholder="이름"
+            value={name}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setName(e.target.value)
+            }
+          />
+          <Input
+            type="text"
+            placeholder="닉네임"
+            value={nickname}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setNickname(e.target.value)
+            }
+          />
+        </div>
         <DialogFooter>
           <Button type="submit" onClick={handleSubmit}>
             회원가입
