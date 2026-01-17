@@ -8,7 +8,7 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSignIn } from "@/hooks/mutations/auth/useSignIn";
 import { toast } from "sonner";
 import { useOpenSignupModal } from "@/stores/signup-modal";
@@ -60,6 +60,13 @@ export default function SignInModal() {
       openSignInModal.actions.close();
     }
   };
+
+  useEffect(() => {
+    return () => {
+      setEmail("");
+      setPassword("");
+    };
+  }, [openSignInModal.isOpen]);
   return (
     <Dialog open={openSignInModal.isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
