@@ -3,8 +3,14 @@ import SignInButton from "./SignInButton";
 import { useAuthIsAuthenticated } from "@/stores/auth";
 import MyPageButton from "./MyPageButton";
 import LogoutButton from "./LogoutButton";
+import { useNavigate } from "react-router";
 export default function Header() {
   const isAuthenticated = useAuthIsAuthenticated();
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate("/");
+  };
 
   return (
     <header className="border-border bg-background sticky top-0 z-50 border-b">
@@ -12,7 +18,12 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* 중앙 제목 */}
           <h1 className="text-foreground flex items-center gap-2 text-xl font-semibold">
-            <img src={logoText} alt="logo" className="size-30" />
+            <img
+              src={logoText}
+              alt="logo"
+              className="size-30"
+              onClick={handleClick}
+            />
           </h1>
 
           {isAuthenticated ? (
