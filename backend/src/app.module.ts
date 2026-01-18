@@ -10,6 +10,7 @@ import { AccountsModule } from './accounts/accounts.module';
 import { CategoryModule } from './category/category.module';
 import { BidsModule } from './bids/bids.module';
 import { AuctionsModule } from './auctions/auctions.module';
+import { ImagesModule } from './images/images.module';
 @Module({
   imports: [
     ConfigModule,
@@ -21,6 +22,7 @@ import { AuctionsModule } from './auctions/auctions.module';
     CategoryModule,
     BidsModule,
     AuctionsModule,
+    ImagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
