@@ -20,7 +20,4 @@ export type AuctionCreateInput = {
   imageUrl?: string | null;
   startAt: Date | string;
   endAt: Date | string;
-  winningBidId: number | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
 };
