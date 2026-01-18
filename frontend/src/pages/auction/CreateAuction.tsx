@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useCreateAuction } from "@/hooks/mutations/auction/useCreateAuction";
 import { useSubCategory } from "@/hooks/queries/useSubCategory";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import { toastError } from "@/lib/toast";
@@ -31,6 +32,7 @@ export default function CreateAuction() {
 
   const { data: topCategories } = useTopCategory();
   const { data: subCategories } = useSubCategory(categoryId);
+  const { mutate: createAuction } = useCreateAuction();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -104,6 +106,8 @@ export default function CreateAuction() {
       toastError("즉시 구매가는 시작가격보다 낮을 수 없습니다.");
       return;
     }
+    // TODO: 이미지 업로드 후 이미지 URL 설정
+    // TODO: 경매 생성 후 경매 상세 페이지로 이동
   };
   return (
     <div className="flex flex-col gap-4">
