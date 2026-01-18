@@ -11,6 +11,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useSubCategory } from "@/hooks/queries/useSubCategory";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
+import { toastError } from "@/lib/toast";
 import { useRef, useState } from "react";
 
 type Image = { file: File; previewUrl: string };
@@ -24,11 +25,46 @@ export default function CreateAuction() {
   const [subCategoryId, setSubCategoryId] = useState(0);
   const [startAt, setStartAt] = useState(new Date());
   const [endAt, setEndAt] = useState(new Date());
+  const [buyoutPrice, setBuyoutPrice] = useState(0);
   const [imageUrl, setImageUrl] = useState<Image | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const { data: topCategories } = useTopCategory();
   const { data: subCategories } = useSubCategory(categoryId);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length > 50) {
+      return;
+    }
+    setTitle(value);
+  };
+
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    const value = e.target.value;
+    if (value.length > 1000) {
+      return;
+    }
+    setDescription(value);
+  };
+
+  const handleStartPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length > 10) {
+      return;
+    }
+    setStartPrice(Number(value));
+  };
+
+  const handleBuyoutPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length > 10) {
+      return;
+    }
+    setBuyoutPrice(Number(value));
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -42,16 +78,32 @@ export default function CreateAuction() {
   };
 
   const handleSubmit = () => {
-    console.log("submit");
-    console.log(title);
-    console.log(description);
-    console.log(startPrice);
-    console.log(minBidStep);
-    console.log(categoryId);
-    console.log(subCategoryId);
-    console.log(startAt);
-    console.log(endAt);
-    console.log(imageUrl);
+    if (
+      !title ||
+      !description ||
+      !startPrice ||
+      !minBidStep ||
+      !categoryId ||
+      !subCategoryId ||
+      !startAt ||
+      !endAt ||
+      !buyoutPrice
+    ) {
+      toastError("모든 필드를 입력해주세요.");
+      return;
+    }
+    if (startPrice > buyoutPrice) {
+      toastError("시작가격은 즉시 구매가보다 높을 수 없습니다.");
+      return;
+    }
+    if (startAt >= endAt) {
+      toastError("시작일시는 종료일시보다 이전일 수 없습니다.");
+      return;
+    }
+    if (buyoutPrice < startPrice) {
+      toastError("즉시 구매가는 시작가격보다 낮을 수 없습니다.");
+      return;
+    }
   };
   return (
     <div className="flex flex-col gap-4">
@@ -59,18 +111,21 @@ export default function CreateAuction() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label>상품명</Label>
-          <Input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+          <Input type="text" value={title} onChange={handleTitleChange} />
+          <p className="text-sm text-gray-500">
+            상품명은 최대 50자까지 입력할 수 있습니다.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label>상품설명</Label>
           <Textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={handleDescriptionChange}
+            maxLength={1000}
           />
+          <p className="text-sm text-gray-500">
+            상품설명은 최대 1000자까지 입력할 수 있습니다.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label>카테고리</Label>
@@ -114,8 +169,11 @@ export default function CreateAuction() {
           <Input
             type="number"
             value={startPrice}
-            onChange={(e) => setStartPrice(Number(e.target.value))}
+            onChange={handleStartPriceChange}
           />
+          <p className="text-sm text-gray-500">
+            시작가격은 최대 10자리까지 입력할 수 있습니다.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label>입찰 단위</Label>
@@ -166,6 +224,14 @@ export default function CreateAuction() {
         <p className="text-sm text-gray-500">
           경매 기간은 최대 7일까지 설정할 수 있습니다.
         </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label>즉시 구매가</Label>
+        <Input
+          type="number"
+          value={buyoutPrice}
+          onChange={handleBuyoutPriceChange}
+        />
       </div>
       <div className="flex flex-col gap-2">
         <Label>상품 이미지</Label>
