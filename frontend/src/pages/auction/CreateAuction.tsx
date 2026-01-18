@@ -9,6 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useSubCategory } from "@/hooks/queries/useSubCategory";
+import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import { useRef, useState } from "react";
 
 type Image = { file: File; previewUrl: string };
@@ -18,12 +20,15 @@ export default function CreateAuction() {
   const [description, setDescription] = useState("");
   const [startPrice, setStartPrice] = useState(0);
   const [minBidStep, setMinBidStep] = useState(0);
-  const [categoryId, setCategoryId] = useState("");
-  const [subCategoryId, setSubCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState(0);
+  const [subCategoryId, setSubCategoryId] = useState(0);
   const [startAt, setStartAt] = useState(new Date());
   const [endAt, setEndAt] = useState(new Date());
   const [imageUrl, setImageUrl] = useState<Image | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: topCategories } = useTopCategory();
+  const { data: subCategories } = useSubCategory(categoryId);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -70,15 +75,37 @@ export default function CreateAuction() {
         <div className="flex flex-col gap-2">
           <Label>카테고리</Label>
           <div className="flex gap-2">
-            <Select onValueChange={(value) => setCategoryId(value)}>
-              <SelectTrigger>
+            <Select onValueChange={(value) => setCategoryId(Number(value))}>
+              <SelectTrigger className="w-50">
                 <SelectValue placeholder="카테고리를 선택해주세요." />
               </SelectTrigger>
+              <SelectContent>
+                {topCategories
+                  ?.filter((category) => category.code !== "ALL")
+                  .map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
             </Select>
-            <Select onValueChange={(value) => setSubCategoryId(value)}>
-              <SelectTrigger>
+            <Select onValueChange={(value) => setSubCategoryId(Number(value))}>
+              <SelectTrigger className="w-50">
                 <SelectValue placeholder="카테고리를 선택해주세요." />
               </SelectTrigger>
+              <SelectContent>
+                {subCategories?.map((subCategory) => (
+                  <SelectItem
+                    key={subCategory.id}
+                    value={subCategory.id.toString()}
+                  >
+                    {subCategory.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>
