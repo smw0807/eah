@@ -135,23 +135,37 @@ export default function CreateAuction() {
           </Select>
         </div>
       </div>
-      <div className="flex gap-2">
-        <div className="flex flex-col gap-2">
-          <Label>시작일시</Label>
-          <Input
-            type="datetime-local"
-            value={startAt.toISOString().slice(0, 16)}
-            onChange={(e) => setStartAt(new Date(e.target.value))}
-          />
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
+            <Label>시작일시</Label>
+            <Input
+              type="datetime-local"
+              value={startAt.toISOString().slice(0, 16)}
+              onChange={(e) => setStartAt(new Date(e.target.value))}
+              min={new Date().toISOString().slice(0, 16)}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>종료일시</Label>
+            <Input
+              type="datetime-local"
+              value={endAt.toISOString().slice(0, 16)}
+              onChange={(e) => setEndAt(new Date(e.target.value))}
+              min={startAt.toISOString().slice(0, 16)}
+              max={new Date(
+                new Date(startAt.toISOString().slice(0, 16)).setDate(
+                  new Date(startAt.toISOString().slice(0, 16)).getDate() + 7,
+                ),
+              )
+                .toISOString()
+                .slice(0, 16)}
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Label>종료일시</Label>
-          <Input
-            type="datetime-local"
-            value={endAt.toISOString().slice(0, 16)}
-            onChange={(e) => setEndAt(new Date(e.target.value))}
-          />
-        </div>
+        <p className="text-sm text-gray-500">
+          경매 기간은 최대 7일까지 설정할 수 있습니다.
+        </p>
       </div>
       <div className="flex flex-col gap-2">
         <Label>상품 이미지</Label>
