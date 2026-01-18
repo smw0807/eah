@@ -19,4 +19,7 @@ export const validationSchema = Joi.object({
   CORS_ORIGIN: Joi.string().required(),
   CORS_METHODS: Joi.string().required(),
   CORS_ALLOWED_HEADERS: Joi.string().required(),
+  // SUPABASE
+  SUPABASE_URL: Joi.string().required(),
+  SUPABASE_API_KEY: Joi.string().required(),
 });

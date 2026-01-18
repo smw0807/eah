@@ -11,6 +11,7 @@ import { CategoryModule } from './category/category.module';
 import { BidsModule } from './bids/bids.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { ImagesModule } from './images/images.module';
+import { SupabaseModule } from './supabase/supabase.module';
 @Module({
   imports: [
     ConfigModule,
@@ -23,6 +24,7 @@ import { ImagesModule } from './images/images.module';
     BidsModule,
     AuctionsModule,
     ImagesModule,
+    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
