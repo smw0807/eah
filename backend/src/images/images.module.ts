@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { ImagesService } from './images.service';
 import { ImagesController } from './images.controller';
 import { SupabaseModule } from 'src/supabase/supabase.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [SupabaseModule],
+  imports: [SupabaseModule, AuthModule],
   controllers: [ImagesController],
   providers: [ImagesService],
 })
