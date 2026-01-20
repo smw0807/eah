@@ -15,9 +15,12 @@ import { useSubCategory } from "@/hooks/queries/useSubCategory";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import { toastError } from "@/lib/toast";
 import type { Image } from "@/models/auction";
+import { useAlertModal } from "@/stores/alert-modal";
 import { useRef, useState } from "react";
 
 export default function CreateAuction() {
+  const openAlertModal = useAlertModal();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startPrice, setStartPrice] = useState(0);
@@ -116,22 +119,28 @@ export default function CreateAuction() {
       return;
     }
 
-    let imageUrl = null;
-    if (image) {
-      const upload = await uploadImage(image.file);
-      imageUrl = upload.url;
-    }
-    createAuction({
-      title,
-      description,
-      startPrice,
-      minBidStep,
-      buyoutPrice,
-      categoryId,
-      subCategoryId,
-      startAt,
-      endAt,
-      imageUrl,
+    openAlertModal.actions.open({
+      title: "상품등록",
+      description: "상품등록을 진행하시겠습니까?",
+      onPositive: async () => {
+        let imageUrl = null;
+        if (image) {
+          const upload = await uploadImage(image.file);
+          imageUrl = upload.url;
+        }
+        createAuction({
+          title,
+          description,
+          startPrice,
+          minBidStep,
+          buyoutPrice,
+          categoryId,
+          subCategoryId,
+          startAt,
+          endAt,
+          imageUrl,
+        });
+      },
     });
   };
   return (
