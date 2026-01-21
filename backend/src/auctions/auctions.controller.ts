@@ -22,14 +22,15 @@ export class AuctionsController {
   @UseGuards(AuthGuard)
   async getAuctions(
     @Query('orderBy')
-    orderBy: SearchAuctionsQuery['orderBy'],
-    @Query('orderDirection')
-    orderDirection: SearchAuctionsQuery['orderDirection'],
+    sort: SearchAuctionsQuery['sort'],
+    @Query('minPrice')
+    minPrice: SearchAuctionsQuery['minPrice'],
+    @Query('maxPrice')
+    maxPrice: SearchAuctionsQuery['maxPrice'],
+    @Query('search')
+    search: SearchAuctionsQuery['search'],
   ) {
-    if (!orderBy || !orderDirection) {
-      throw new BadRequestException('orderBy and orderDirection are required');
-    }
-    return this.auctionsService.getAuctions(orderBy, orderDirection);
+    return this.auctionsService.getAuctions(sort, minPrice, maxPrice, search);
   }
 
   @Post()

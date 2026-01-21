@@ -11,12 +11,23 @@ export class AuctionsService {
 
   // 경매 목록 조회
   async getAuctions(
-    orderBy: SearchAuctionsQuery['orderBy'],
-    orderDirection: SearchAuctionsQuery['orderDirection'],
+    sort: SearchAuctionsQuery['sort'],
+    minPrice: SearchAuctionsQuery['minPrice'],
+    maxPrice: SearchAuctionsQuery['maxPrice'],
+    search: SearchAuctionsQuery['search'],
   ): Promise<Auction[]> {
     const auctions = await this.prisma.auction.findMany({
       orderBy: {
-        [orderBy]: orderDirection,
+        [sort as keyof Auction]: sort,
+      } as any,
+      where: {
+        ...(minPrice && minPrice > 0
+          ? { currentPrice: { gte: minPrice } }
+          : {}),
+        ...(maxPrice && maxPrice > 0
+          ? { currentPrice: { lte: maxPrice } }
+          : {}),
+        ...(search && search.length > 0 ? { title: { contains: search } } : {}),
       },
       include: {
         seller: true,
@@ -27,11 +38,12 @@ export class AuctionsService {
             bidder: true,
           },
           orderBy: {
-            createdAt: 'desc',
-          },
+            createdAt: sort === 'createdAt' ? 'desc' : 'asc',
+          } as any,
         },
       },
     });
+    console.log(auctions);
     return auctions;
   }
 
