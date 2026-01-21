@@ -11,6 +11,7 @@ export class AuctionsService {
 
   // 경매 목록 조회
   async getAuctions(
+    category: SearchAuctionsQuery['category'],
     sort: SearchAuctionsQuery['sort'],
     minPrice: SearchAuctionsQuery['minPrice'],
     maxPrice: SearchAuctionsQuery['maxPrice'],
@@ -21,6 +22,9 @@ export class AuctionsService {
         [sort as keyof Auction]: sort,
       } as any,
       where: {
+        ...(category && category.length > 0
+          ? { category: { code: category } }
+          : {}),
         ...(minPrice && minPrice > 0
           ? { currentPrice: { gte: minPrice } }
           : {}),

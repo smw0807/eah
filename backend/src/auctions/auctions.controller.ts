@@ -21,7 +21,9 @@ export class AuctionsController {
   @Get()
   @UseGuards(AuthGuard)
   async getAuctions(
-    @Query('orderBy')
+    @Query('category')
+    category: SearchAuctionsQuery['category'],
+    @Query('sort')
     sort: SearchAuctionsQuery['sort'],
     @Query('minPrice')
     minPrice: SearchAuctionsQuery['minPrice'],
@@ -30,7 +32,13 @@ export class AuctionsController {
     @Query('search')
     search: SearchAuctionsQuery['search'],
   ) {
-    return this.auctionsService.getAuctions(sort, minPrice, maxPrice, search);
+    return this.auctionsService.getAuctions(
+      category,
+      sort,
+      minPrice,
+      maxPrice,
+      search,
+    );
   }
 
   @Post()
