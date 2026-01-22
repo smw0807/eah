@@ -29,3 +29,42 @@ export type SearchAuctionsQuery = {
   minPrice?: number;
   maxPrice?: number;
 };
+
+export type Auction = {
+  id: number;
+  sellerId: number;
+  title: string;
+  description: string;
+  status: AuctionStatus;
+  startPrice: string;
+  minBidStep: string;
+  currentPrice: string | null;
+  buyoutPrice: string | null;
+  categoryId: number;
+  subCategoryId: number;
+  imageUrl: string | null;
+  startAt: string;
+  endAt: string;
+  winningBidId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  seller: {
+    id: number;
+    name: string;
+    nickname: string;
+    email: string;
+  };
+  category: {
+    id: number;
+    code: string;
+    name: string;
+    parentId: number | null;
+  };
+  subCategory: {
+    id: number;
+    code: string;
+    name: string;
+    parentId: number | null;
+  };
+  bids: unknown[];
+};

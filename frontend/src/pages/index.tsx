@@ -1,9 +1,10 @@
 import AddAuctionButton from "@/components/side-menu/AddAuctionButton";
 import CategorySection from "@/components/side-menu/CategorySection";
 import FilterSection from "@/components/side-menu/FilterSection";
+import AuctionCard from "@/components/auction/AuctionCard";
 import { useGetAuctions } from "@/hooks/queries/useGetAuctions";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
-import type { SearchAuctionsQuery } from "@/models/auction";
+import type { Auction, SearchAuctionsQuery } from "@/models/auction";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -65,9 +66,17 @@ export default function Home() {
       {/* 메인 컨텐츠 영역 */}
       <div className="flex-1">
         <h1 className="text-foreground mb-6 text-2xl font-bold">경매 상품</h1>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* 경매 아이템들이 여기에 표시됩니다 */}
-        </div>
+        {auctions && Array.isArray(auctions) && auctions.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {auctions.map((auction: Auction) => (
+              <AuctionCard key={auction.id} auction={auction} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-muted-foreground flex h-64 items-center justify-center rounded-lg border border-dashed">
+            <p>등록된 경매 상품이 없습니다.</p>
+          </div>
+        )}
       </div>
     </div>
   );
