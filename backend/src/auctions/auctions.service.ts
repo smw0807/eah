@@ -34,7 +34,13 @@ export class AuctionsService {
         ...(search && search.length > 0 ? { title: { contains: search } } : {}),
       },
       include: {
-        seller: true,
+        seller: {
+          select: {
+            name: true,
+            nickname: true,
+            email: true,
+          },
+        },
         category: true,
         subCategory: true,
         bids: {
