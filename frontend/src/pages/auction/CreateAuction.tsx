@@ -13,12 +13,14 @@ import { useCreateAuction } from "@/hooks/mutations/auction/useCreateAuction";
 import { useImageUpload } from "@/hooks/mutations/image/useImageUpload";
 import { useSubCategory } from "@/hooks/queries/useSubCategory";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import type { Image } from "@/models/auction";
 import { useAlertModal } from "@/stores/alert-modal";
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router";
 
 export default function CreateAuction() {
+  const navigate = useNavigate();
   const openAlertModal = useAlertModal();
 
   const [title, setTitle] = useState("");
@@ -36,6 +38,10 @@ export default function CreateAuction() {
   const { data: topCategories } = useTopCategory();
   const { data: subCategories } = useSubCategory(categoryId);
   const { mutate: createAuction } = useCreateAuction({
+    onSuccess: () => {
+      toastSuccess("상품등록이 완료되었습니다.");
+      navigate("/");
+    },
     onError: (error) => {
       toastError(error.message);
     },
