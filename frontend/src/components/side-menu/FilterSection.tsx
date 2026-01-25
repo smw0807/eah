@@ -8,6 +8,7 @@ import {
 } from "../ui/select";
 import { Button } from "../ui/button";
 import { useState } from "react";
+import { toastError } from "@/lib/toast";
 
 interface FilterSectionProps {
   setFilterParams: (params: {
@@ -24,6 +25,10 @@ export default function FilterSection({ setFilterParams }: FilterSectionProps) {
   const [search, setSearch] = useState<string>("");
 
   const handleSearch = () => {
+    if (minPrice > maxPrice) {
+      toastError("최소 가격은 최대 가격보다 클 수 없습니다.");
+      return;
+    }
     setFilterParams({
       sort,
       minPrice,
