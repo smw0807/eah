@@ -8,12 +8,13 @@ export const createAuction = async (auction: AuctionCreateInput) => {
 
 export const getAuctions = async ({
   category,
+  sort,
   search,
   minPrice,
   maxPrice,
 }: SearchAuctionsQuery) => {
   const response = await get(
-    `/auctions?category=${category}&search=${search}&minPrice=${minPrice}&maxPrice=${maxPrice}`,
+    `/auctions?category=${category}&sort=${sort}&search=${search}&minPrice=${minPrice}&maxPrice=${maxPrice}`,
   );
   return response.json();
 };

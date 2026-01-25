@@ -19,6 +19,7 @@ export default function Home() {
     minPrice: 0,
     maxPrice: 0,
   });
+  console.log(filterParams);
 
   const { data: topCategories, isLoading: isTopCategoriesLoading } =
     useTopCategory();

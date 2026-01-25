@@ -18,13 +18,35 @@ export class AuctionsService {
     search: SearchAuctionsQuery['search'],
   ): Promise<Auction[]> {
     const where: Prisma.AuctionWhereInput = {
-      ...(category && category.length > 0
-        ? { category: { code: category } }
-        : {}),
-      ...(minPrice && minPrice > 0 ? { currentPrice: { gte: minPrice } } : {}),
-      ...(maxPrice && maxPrice > 0 ? { currentPrice: { lte: maxPrice } } : {}),
-      ...(search && search.length > 0 ? { title: { contains: search } } : {}),
+      AND: [
+        category && category !== 'ALL' ? { category: { code: category } } : {},
+        (minPrice && minPrice > 0) || (maxPrice && maxPrice > 0)
+          ? { currentPrice: { gte: minPrice ?? 0, lte: maxPrice ?? 0 } }
+          : {},
+        search && search.length > 0
+          ? {
+              OR: [
+                { title: { contains: search } },
+                { description: { contains: search } },
+              ],
+            }
+          : {},
+      ],
     };
+    let orderBy: Prisma.AuctionOrderByWithRelationInput = {};
+    if (sort === 'createdAt') {
+      orderBy = {
+        createdAt: Prisma.SortOrder.desc,
+      };
+    } else if (sort === 'minPrice') {
+      orderBy = {
+        currentPrice: Prisma.SortOrder.asc,
+      };
+    } else if (sort === 'maxPrice') {
+      orderBy = {
+        currentPrice: Prisma.SortOrder.desc,
+      };
+    }
     const auctions = await this.prisma.auction.findMany({
       where,
       include: {
@@ -46,8 +68,8 @@ export class AuctionsService {
           } as any,
         },
       },
+      orderBy,
     });
-    console.log(auctions);
     return auctions;
   }
 
@@ -63,7 +85,7 @@ export class AuctionsService {
         status: AuctionStatus.SCHEDULED,
         startPrice: auction.startPrice,
         minBidStep: auction.minBidStep,
-        currentPrice: auction.currentPrice ?? null,
+        currentPrice: auction.startPrice ?? null,
         buyoutPrice: auction.buyoutPrice ?? null,
         imageUrl: auction.imageUrl ?? null,
         startAt: auction.startAt,
