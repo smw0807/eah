@@ -5,7 +5,7 @@ import AuctionCard from "@/components/auction/AuctionCard";
 import { useGetAuctions } from "@/hooks/queries/useGetAuctions";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import type { Auction, SearchAuctionsQuery } from "@/models/auction";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 
 export default function Home() {
@@ -23,13 +23,15 @@ export default function Home() {
   const { data: topCategories, isLoading: isTopCategoriesLoading } =
     useTopCategory();
 
-  const { data: auctions, isLoading: isAuctionsLoading } = useGetAuctions({
-    sort: "createdAt",
-    category: currentCategory ?? undefined,
-    search: "",
-    minPrice: 0,
-    maxPrice: 0,
-  });
+  const {
+    data: auctions,
+    isLoading: isAuctionsLoading,
+    refetch: refetchAuctions,
+  } = useGetAuctions(filterParams);
+
+  useEffect(() => {
+    refetchAuctions();
+  }, [filterParams]);
 
   if (isAuctionsLoading) {
     return <div>Loading...</div>;
