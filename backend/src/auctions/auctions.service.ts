@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Auction, AuctionStatus, Prisma } from 'generated/prisma/client';
 import { AuctionCreateInput } from 'generated/prisma/models';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -116,5 +116,33 @@ export class AuctionsService {
       },
     });
     return newAuction;
+  }
+
+  // 현재 진행중인 경매 상품인지 확인
+  async isCurrentAuction(auctionId: number): Promise<boolean> {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+    });
+    return auction?.status === AuctionStatus.OPEN;
+  }
+
+  // 경매 상세 정보 조회
+  async getAuctionDetail(auctionId: number): Promise<Auction> {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+      include: {
+        seller: {
+          select: {
+            name: true,
+            nickname: true,
+            email: true,
+          },
+        },
+      },
+    });
+    if (!auction) {
+      throw new NotFoundException('경매 상품을 찾을 수 없습니다.');
+    }
+    return auction;
   }
 }

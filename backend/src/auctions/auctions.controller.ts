@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -74,5 +75,25 @@ export class AuctionsController {
       throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
     }
     return this.auctionsService.createAuction(auction, user.id);
+  }
+
+  // 현재 진행중인 경매 상품인지 확인
+  @Get('current')
+  @UseGuards(AuthGuard)
+  async isCurrentAuction(
+    @Query('auctionId')
+    auctionId: number,
+  ) {
+    return this.auctionsService.isCurrentAuction(+auctionId);
+  }
+
+  // 경매 상세 정보 조회
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  async getAuctionDetail(
+    @Param('id')
+    id: number,
+  ) {
+    return this.auctionsService.getAuctionDetail(+id);
   }
 }
