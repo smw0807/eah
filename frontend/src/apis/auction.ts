@@ -18,3 +18,13 @@ export const getAuctions = async ({
   );
   return response.json();
 };
+
+export const isCurrentAuction = async (auctionId: number) => {
+  const response = await get(`/auctions/current?auctionId=${auctionId}`);
+  return response.json();
+};
+
+export const getAuctionDetail = async (auctionId: number) => {
+  const response = await get(`/auctions/${auctionId}`);
+  return response.json();
+};
