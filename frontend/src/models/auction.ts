@@ -67,5 +67,12 @@ export type Auction = {
     name: string;
     parentId: number | null;
   };
-  bids: unknown[];
+  bids: Bid[];
+};
+
+export type Bid = {
+  id: number;
+  auctionId: number;
+  bidderId: number;
+  amount: number;
 };
