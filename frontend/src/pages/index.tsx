@@ -14,7 +14,7 @@ export default function Home() {
 
   const [filterParams, setFilterParams] = useState<SearchAuctionsQuery>({
     sort: "createdAt",
-    category: currentCategory ?? undefined,
+    category: currentCategory ?? "",
     search: "",
     minPrice: 0,
     maxPrice: 0,
