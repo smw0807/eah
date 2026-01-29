@@ -18,6 +18,7 @@ export default function Home() {
     search: "",
     minPrice: 0,
     maxPrice: 0,
+    status: "",
   });
 
   const { data: topCategories, isLoading: isTopCategoriesLoading } =

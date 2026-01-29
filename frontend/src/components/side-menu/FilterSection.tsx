@@ -16,6 +16,7 @@ interface FilterSectionProps {
     minPrice: number;
     maxPrice: number;
     search: string;
+    status: string;
   }) => void;
 }
 export default function FilterSection({ setFilterParams }: FilterSectionProps) {
@@ -23,6 +24,7 @@ export default function FilterSection({ setFilterParams }: FilterSectionProps) {
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(0);
   const [search, setSearch] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
 
   const handleSearch = () => {
     if (minPrice > maxPrice) {
@@ -31,6 +33,7 @@ export default function FilterSection({ setFilterParams }: FilterSectionProps) {
     }
     setFilterParams({
       sort,
+      status,
       minPrice,
       maxPrice,
       search,
@@ -61,6 +64,23 @@ export default function FilterSection({ setFilterParams }: FilterSectionProps) {
               onChange={(e) => setMaxPrice(Number(e.target.value))}
             />
           </div>
+        </div>
+        <div>
+          <label className="text-foreground mb-2 block text-sm font-medium">
+            상태
+          </label>
+          <Select onValueChange={(value) => setStatus(value)}>
+            <SelectTrigger className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm">
+              <SelectValue placeholder="상태" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">전체</SelectItem>
+              <SelectItem value="SCHEDULED">예정</SelectItem>
+              <SelectItem value="OPEN">진행중</SelectItem>
+              <SelectItem value="CLOSED">종료</SelectItem>
+              <SelectItem value="CANCELED">취소</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="text-foreground mb-2 block text-sm font-medium">

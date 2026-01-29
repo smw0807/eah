@@ -4,4 +4,5 @@ export type SearchAuctionsQuery = {
   search?: string;
   minPrice?: number;
   maxPrice?: number;
+  status?: string;
 };

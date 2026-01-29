@@ -12,9 +12,10 @@ export const getAuctions = async ({
   search,
   minPrice,
   maxPrice,
+  status,
 }: SearchAuctionsQuery) => {
   const response = await get(
-    `/auctions?category=${category}&sort=${sort}&search=${search}&minPrice=${minPrice}&maxPrice=${maxPrice}`,
+    `/auctions?category=${category}&sort=${sort}&search=${search}&minPrice=${minPrice}&maxPrice=${maxPrice}&status=${status}`,
   );
   return response.json();
 };

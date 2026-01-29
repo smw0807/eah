@@ -16,6 +16,7 @@ export class AuctionsService {
     minPrice: SearchAuctionsQuery['minPrice'],
     maxPrice: SearchAuctionsQuery['maxPrice'],
     search: SearchAuctionsQuery['search'],
+    status: SearchAuctionsQuery['status'],
   ): Promise<Auction[]> {
     const where: Prisma.AuctionWhereInput = {
       AND: [
@@ -31,6 +32,7 @@ export class AuctionsService {
               ],
             }
           : {},
+        status && status !== 'ALL' ? { status: status as AuctionStatus } : {},
       ],
     };
     let orderBy: Prisma.AuctionOrderByWithRelationInput = {};
