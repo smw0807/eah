@@ -12,16 +12,22 @@ import {
   TrendingUp,
   ShoppingCart,
   ArrowLeft,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import type { Auction, Bid } from "@/models/auction";
 import { statusColors, statusLabels } from "@/lib/constants";
+import { useAuctionWebSocket } from "@/hooks/useAuctionWebSocket";
 
 export default function AuctionDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { data: auction, isLoading: isAuctionLoading } = useGetAuction(
-    Number(id),
-  );
+  const auctionId = Number(id);
+  const { data: auction, isLoading: isAuctionLoading } =
+    useGetAuction(auctionId);
+
+  // WebSocket 연결 (실시간 업데이트)
+  const { isConnected } = useAuctionWebSocket(auctionId);
 
   if (isAuctionLoading) {
     return (
@@ -104,11 +110,29 @@ export default function AuctionDetail() {
           {/* 제목 및 카테고리 */}
           <div className="space-y-4">
             <div>
-              <div className="text-muted-foreground mb-2 flex items-center gap-2 text-sm">
-                <Tag className="size-4" />
-                <span>
-                  {auction.category.name} &gt; {auction.subCategory.name}
-                </span>
+              <div className="text-muted-foreground mb-2 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <Tag className="size-4" />
+                  <span>
+                    {auction.category.name} &gt; {auction.subCategory.name}
+                  </span>
+                </div>
+                {/* 실시간 연결 상태 표시 */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  {isConnected ? (
+                    <>
+                      <Wifi className="size-3.5 text-green-500" />
+                      <span className="text-green-600 dark:text-green-400">
+                        실시간 연결됨
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="size-3.5 text-gray-400" />
+                      <span>연결 중...</span>
+                    </>
+                  )}
+                </div>
               </div>
               <h1 className="text-3xl font-bold">{auction.title}</h1>
             </div>

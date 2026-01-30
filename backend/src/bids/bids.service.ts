@@ -1,11 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Bid, Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AuctionsGateway } from 'src/auctions/auctions.gateway';
 
 @Injectable()
 export class BidsService {
   private readonly logger = new Logger(BidsService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AuctionsGateway))
+    private readonly auctionsGateway: AuctionsGateway,
+  ) {}
 
   // 전체 입찰 내역 조회
   async getBids(): Promise<Bid[]> {
@@ -119,6 +124,18 @@ export class BidsService {
         amount: data.amount,
       },
     });
+
+    // 경매의 현재가 업데이트
+    await this.prisma.auction.update({
+      where: { id: data.auctionId },
+      data: {
+        currentPrice: data.amount,
+      },
+    });
+
+    // WebSocket으로 실시간 업데이트 브로드캐스트
+    await this.auctionsGateway.handleBidCreated(data.auctionId);
+
     return createdBid;
   }
 
