@@ -6,6 +6,7 @@ const initialState = {
   currentPrice: 0,
   minBidStep: 0,
   nextBidAmount: 0,
+  auctionId: 0,
 };
 
 const useBidModalStore = create(
@@ -17,6 +18,7 @@ const useBidModalStore = create(
         setCurrentPrice: (currentPrice: number) => set({ currentPrice }),
         setMinBidStep: (minBidStep: number) => set({ minBidStep }),
         setNextBidAmount: (nextBidAmount: number) => set({ nextBidAmount }),
+        setAuctionId: (auctionId: number) => set({ auctionId }),
       },
     })),
     {

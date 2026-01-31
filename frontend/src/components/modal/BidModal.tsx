@@ -12,14 +12,12 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useCreateBid } from "@/hooks/mutations/bid/useCreateBid";
 import { toastSuccess, toastError } from "@/lib/toast";
-import { useParams } from "react-router";
 import { TrendingUp, Plus, Minus } from "lucide-react";
 
 export default function BidModal() {
   const bidModal = useBidModal();
   const { currentPrice, minBidStep, nextBidAmount } = bidModal;
-  const { id } = useParams();
-  const auctionId = Number(id);
+  const auctionId = Number(bidModal.auctionId);
 
   const [bidAmount, setBidAmount] = useState(nextBidAmount);
   const [isCustomAmount, setIsCustomAmount] = useState(false);

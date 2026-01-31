@@ -60,7 +60,7 @@ export class AuctionsGateway
 
       const payload = this.authService.verifyToken(token);
 
-      client.data.userInfo = payload;
+      client.data.userId = payload.id;
       this.logger.log(`Client ${client.id} 연결됨 (userId: ${payload.id})`);
     } catch (error: any) {
       this.logger.warn(
@@ -147,7 +147,6 @@ export class AuctionsGateway
   async handleBidCreated(auctionId: number) {
     const auction = await this.auctionsService.getAuctionDetail(auctionId);
     if (!auction) return;
-
     // bids는 getAuctionDetail에서 포함되므로 타입 단언 사용
     const auctionWithBids = auction as any;
 

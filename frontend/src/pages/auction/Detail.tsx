@@ -27,7 +27,7 @@ export default function AuctionDetail() {
   const auctionId = Number(id);
 
   const openBidModal = useOpenBidModal();
-  const { setCurrentPrice, setMinBidStep, setNextBidAmount } =
+  const { setCurrentPrice, setMinBidStep, setNextBidAmount, setAuctionId } =
     useBidModalActions();
 
   const { data: auction, isLoading: isAuctionLoading } =
@@ -82,6 +82,7 @@ export default function AuctionDetail() {
     setCurrentPrice(parseInt(auction.currentPrice || auction.startPrice));
     setMinBidStep(parseInt(auction.minBidStep));
     setNextBidAmount(getNextBidAmount(auction));
+    setAuctionId(auctionId);
     openBidModal();
   };
 
