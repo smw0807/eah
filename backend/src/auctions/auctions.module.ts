@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { AuctionsService } from './auctions.service';
 import { AuctionsController } from './auctions.controller';
 import { AuctionsGateway } from './auctions.gateway';
+import { AuctionsScheduler } from './auctions.scheduler';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [AuctionsController],
-  providers: [AuctionsService, AuctionsGateway],
+  providers: [AuctionsService, AuctionsGateway, AuctionsScheduler],
   exports: [AuctionsGateway],
 })
 export class AuctionsModule {}

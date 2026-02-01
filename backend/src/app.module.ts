@@ -12,9 +12,12 @@ import { BidsModule } from './bids/bids.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { ImagesModule } from './images/images.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { ScheduleModule } from '@nestjs/schedule';
+
 @Module({
   imports: [
     ConfigModule,
+    ScheduleModule.forRoot(), // 스케줄러 모듈 등록
     UsersModule,
     PrismaModule,
     UtilsModule,
