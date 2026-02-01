@@ -120,7 +120,6 @@ export class BidsService {
 
   // 즉시구매 생성
   async createBuyout(auctionId: number, userId: number): Promise<Bid> {
-    console.log('createBuyout', auctionId);
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
     });
