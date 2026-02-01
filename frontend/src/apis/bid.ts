@@ -7,3 +7,10 @@ export const createBid = async (auctionId: number, amount: number) => {
   });
   return response.json();
 };
+
+export const createBuyout = async (auctionId: number) => {
+  const response = await post(`/bids/buyout`, {
+    auctionId,
+  });
+  return response.json();
+};

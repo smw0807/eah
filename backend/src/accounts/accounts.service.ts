@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -26,6 +27,15 @@ export class AccountsService {
     if (!account) {
       throw new NotFoundException('Account not found');
     }
+    return account;
+  }
+
+  // 계좌 업데이트
+  async updateAccount(userId: number, data: Prisma.UserAccountUpdateInput) {
+    const account = await this.prisma.userAccount.update({
+      where: { userId },
+      data,
+    });
     return account;
   }
 }

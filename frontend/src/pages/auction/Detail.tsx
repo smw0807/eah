@@ -18,8 +18,10 @@ import {
 import type { Auction, Bid } from "@/models/auction";
 import { statusColors, statusLabels } from "@/lib/constants";
 import { useAuctionWebSocket } from "@/hooks/useAuctionWebSocket";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import { useOpenBidModal, useBidModalActions } from "@/stores/bid-modal";
+import { useOpenAlertModal } from "@/stores/alert-modal";
+import { useCreateBuyout } from "@/hooks/mutations/bid/useCreateBuyout";
 
 export default function AuctionDetail() {
   const navigate = useNavigate();
@@ -30,8 +32,18 @@ export default function AuctionDetail() {
   const { setCurrentPrice, setMinBidStep, setNextBidAmount, setAuctionId } =
     useBidModalActions();
 
+  const openAlertModal = useOpenAlertModal();
+
   const { data: auction, isLoading: isAuctionLoading } =
     useGetAuction(auctionId);
+  const { mutate: createBuyout } = useCreateBuyout({
+    onSuccess: () => {
+      toastSuccess("즉시구매가 완료되었습니다.");
+    },
+    onError: (error) => {
+      toastError(error.message);
+    },
+  });
 
   // WebSocket 연결 (실시간 업데이트)
   const { isConnected } = useAuctionWebSocket(auctionId);
@@ -91,6 +103,14 @@ export default function AuctionDetail() {
       toastError("연결이 되지 않아 즉시구매를 할 수 없습니다.");
       return;
     }
+    openAlertModal({
+      title: "즉시구매",
+      description: `즉시구매를 하시겠습니까?<br/><br/><span class='font-bold text-lg text-red-500'>즉시구매 가격: ${formatPrice(auction.buyoutPrice)}원</span>`,
+      onPositive: () => {
+        createBuyout(auctionId);
+      },
+    });
+    return;
   };
 
   return (

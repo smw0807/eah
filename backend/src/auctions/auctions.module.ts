@@ -9,6 +9,6 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [PrismaModule, AuthModule],
   controllers: [AuctionsController],
   providers: [AuctionsService, AuctionsGateway, AuctionsScheduler],
-  exports: [AuctionsGateway],
+  exports: [AuctionsGateway, AuctionsService],
 })
 export class AuctionsModule {}

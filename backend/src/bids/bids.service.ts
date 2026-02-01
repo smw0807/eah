@@ -1,4 +1,11 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  forwardRef,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Bid, Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionsGateway } from 'src/auctions/auctions.gateway';
@@ -109,6 +116,24 @@ export class BidsService {
       },
     });
     return bids;
+  }
+
+  // 즉시구매 생성
+  async createBuyout(auctionId: number, userId: number): Promise<Bid> {
+    console.log('createBuyout', auctionId);
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+    });
+    if (!auction) {
+      throw new NotFoundException('경매를 찾을 수 없습니다.');
+    }
+    if (!auction.buyoutPrice) {
+      throw new BadRequestException('즉시구매 가격이 설정되지 않았습니다.');
+    }
+    const createdBid = await this.prisma.bid.create({
+      data: { auctionId, bidderId: userId, amount: auction.buyoutPrice },
+    });
+    return createdBid;
   }
 
   // 입찰 생성

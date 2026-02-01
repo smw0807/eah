@@ -12,13 +12,21 @@ import { BadRequestException } from '@nestjs/common';
 import { Body } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
 import { CurrentUser } from 'src/auth/decorator/current.user';
-import { Role, User } from 'generated/prisma/client';
+import { AuctionStatus, Prisma, Role, User } from 'generated/prisma/client';
 import { RoleGuard } from 'src/auth/guard/role.guard';
 import { RBAC } from 'src/auth/decorator/rbac';
+import { AuctionsGateway } from 'src/auctions/auctions.gateway';
+import { AccountsService } from 'src/accounts/accounts.service';
+import { AuctionsService } from 'src/auctions/auctions.service';
 
 @Controller('bids')
 export class BidsController {
-  constructor(private readonly bidsService: BidsService) {}
+  constructor(
+    private readonly bidsService: BidsService,
+    private readonly auctionsGateway: AuctionsGateway,
+    private readonly auctionsService: AuctionsService,
+    private readonly accountsService: AccountsService,
+  ) {}
 
   // 전체 입찰 내역 조회
   @Get()
@@ -62,6 +70,40 @@ export class BidsController {
   @UseGuards(AuthGuard)
   async getAuctionBids(@Param('auctionId') auctionId: number) {
     return this.bidsService.getAuctionBids(+auctionId);
+  }
+
+  // 즉시구매 생성
+  @Post('buyout')
+  @UseGuards(AuthGuard)
+  async createBuyout(
+    @CurrentUser() user: User,
+    @Body() body: { auctionId: number },
+  ) {
+    if (!body.auctionId) {
+      throw new BadRequestException('Auction ID is required');
+    }
+    const auctionId = body.auctionId;
+    // 즉시구매 생성
+    const createdBid = await this.bidsService.createBuyout(+auctionId, user.id);
+    // WebSocket으로 실시간 업데이트 브로드캐스트
+    await this.auctionsGateway.handleBidCreated(+auctionId);
+    await this.auctionsGateway.handleAuctionStatusChange(
+      +auctionId,
+      AuctionStatus.CLOSED as AuctionStatus,
+    );
+    // 내 자금 즉시구매 가격만큼 차감
+    await this.accountsService.updateAccount(user.id, {
+      currentAmount: {
+        decrement: new Prisma.Decimal(createdBid.amount.toString()),
+      },
+    });
+    // 경매 상품 winning_bid_id 업데이트
+    await this.auctionsService.updateAuctionWinningBidId(
+      +auctionId,
+      createdBid.id,
+    );
+
+    return createdBid;
   }
 
   // 입찰 생성

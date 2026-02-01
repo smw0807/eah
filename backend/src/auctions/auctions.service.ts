@@ -159,4 +159,16 @@ export class AuctionsService {
     }
     return auction;
   }
+
+  // 경매 상품 winning_bid_id 업데이트
+  async updateAuctionWinningBidId(
+    auctionId: number,
+    winningBidId: number,
+  ): Promise<Auction> {
+    const auction = await this.prisma.auction.update({
+      where: { id: auctionId },
+      data: { winningBidId, status: AuctionStatus.CLOSED },
+    });
+    return auction;
+  }
 }

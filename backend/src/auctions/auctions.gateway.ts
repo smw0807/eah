@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { AuctionsService } from './auctions.service';
 import { AuthService } from 'src/auth/auth.service';
+import { AuctionStatus } from 'generated/prisma/enums';
 
 interface AuctionUpdatePayload {
   auctionId: number;
@@ -160,7 +161,7 @@ export class AuctionsGateway
   }
 
   // 경매 상태 변경 시 업데이트 브로드캐스트
-  async handleAuctionStatusChange(auctionId: number, status: string) {
+  async handleAuctionStatusChange(auctionId: number, status: AuctionStatus) {
     const auction = await this.auctionsService.getAuctionDetail(auctionId);
     if (!auction) return;
 
