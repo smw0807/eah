@@ -4,8 +4,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { useIsCurrentAuction } from "@/hooks/queries/auction/useIsCurrentAuction";
-import { toastWarning, toastError } from "@/lib/toast";
+import { toastWarning } from "@/lib/toast";
 import type { Auction } from "@/models/auction";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -20,7 +19,6 @@ interface AuctionCardProps {
 
 export default function AuctionCard({ auction }: AuctionCardProps) {
   const isAuthenticated = useAuthIsAuthenticated();
-  const { data: isCurrentAuction } = useIsCurrentAuction(auction.id);
   const navigate = useNavigate();
 
   const formatPrice = (price: string | null) => {
@@ -40,12 +38,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
       toastWarning("로그인 후 이용해주세요.");
       return;
     }
-    if (isCurrentAuction) {
-      navigate(`/auctions/${auction.id}`);
-    } else {
-      toastError("경매가 진행중이 아닙니다.");
-      return;
-    }
+    navigate(`/auctions/${auction.id}`);
   };
 
   return (
