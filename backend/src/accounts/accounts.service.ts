@@ -38,4 +38,38 @@ export class AccountsService {
     });
     return account;
   }
+
+  // 계좌 잔액 조회
+  async getAccountBalance(userId: number) {
+    const account = await this.prisma.userAccount.findUnique({
+      where: { userId },
+    });
+    return account?.currentAmount;
+  }
+
+  // 계좌 잔액 업데이트
+  async updateAccountBalance(userId: number, amount: number) {
+    const account = await this.prisma.userAccount.update({
+      where: { userId },
+      data: { currentAmount: amount },
+    });
+    return account;
+  }
+
+  // 계좌 락 잔액 조회
+  async getAccountLockedBalance(userId: number) {
+    const account = await this.prisma.userAccount.findUnique({
+      where: { userId },
+    });
+    return account?.lockedAmount;
+  }
+
+  // 계좌 락 잔액 업데이트
+  async updateAccountLockedBalance(userId: number, amount: number) {
+    const account = await this.prisma.userAccount.update({
+      where: { userId },
+      data: { lockedAmount: amount },
+    });
+    return account;
+  }
 }
