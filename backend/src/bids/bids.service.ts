@@ -118,6 +118,18 @@ export class BidsService {
     return bids;
   }
 
+  // 경매 상품에 마지막 입찰자인지 확인
+  async isLastBidder(auctionId: number, userId: number): Promise<boolean> {
+    const bids = await this.prisma.bid.findMany({
+      where: { auctionId },
+      orderBy: { amount: 'desc' },
+    });
+    if (bids.length === 0) {
+      return false;
+    }
+    return bids[0].bidderId === userId;
+  }
+
   // 즉시구매 생성
   async createBuyout(auctionId: number, userId: number): Promise<Bid> {
     const auction = await this.prisma.auction.findUnique({

@@ -177,6 +177,15 @@ export class BidsController {
       throw new BadRequestException('입찰 금액은 100원 단위로 입력해주세요.');
     }
 
+    // 경매 상품에 마지막 입찰자인지 확인
+    const isLastBidder = await this.bidsService.isLastBidder(
+      +auctionId,
+      user.id,
+    );
+    if (isLastBidder) {
+      throw new BadRequestException('마지막 입찰자는 입찰할 수 없습니다.');
+    }
+
     // 사용자 현재 잔액 조회
     const accountBalance = await this.accountsService.getAccountBalance(
       +user.id,
