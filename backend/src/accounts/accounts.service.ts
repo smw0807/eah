@@ -16,6 +16,9 @@ export class AccountsService {
         lockedAmount: 0,
       },
     });
+    this.logger.log(
+      `최초 계좌 생성: ${userId} - ${account.currentAmount.toString()}`,
+    );
     return account;
   }
 
@@ -25,7 +28,9 @@ export class AccountsService {
       where: { userId },
     });
     if (!account) {
-      throw new NotFoundException('Account not found');
+      // 계좌가 없으면 최초 계좌 생성
+      await this.createInitialAccount(userId);
+      return this.getAccount(userId);
     }
     return account;
   }
