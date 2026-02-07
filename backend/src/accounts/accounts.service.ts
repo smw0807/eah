@@ -101,4 +101,33 @@ export class AccountsService {
     });
     return account;
   }
+
+  // 판매자에게 금액 입금 (경매 낙찰 시)
+  async depositToSeller(userId: number, amount: number) {
+    const account = await this.prisma.userAccount.update({
+      where: { userId },
+      data: {
+        currentAmount: { increment: new Prisma.Decimal(amount) },
+      },
+    });
+    this.logger.log(
+      `판매자 ${userId}에게 ${amount}원 입금 완료. 현재 잔액: ${account.currentAmount.toString()}`,
+    );
+    return account;
+  }
+
+  // 낙찰자의 잠금 금액 차감 (경매 종료 시 낙찰자 처리)
+  async deductWinningBidAmount(userId: number, amount: number) {
+    const account = await this.prisma.userAccount.update({
+      where: { userId },
+      data: {
+        lockedAmount: { decrement: new Prisma.Decimal(amount) },
+        // currentAmount는 이미 입찰 시 차감되었으므로 추가 차감 불필요
+      },
+    });
+    this.logger.log(
+      `낙찰자 ${userId}의 잠금 금액 ${amount}원 차감 완료. 남은 잠금 금액: ${account.lockedAmount.toString()}`,
+    );
+    return account;
+  }
 }
