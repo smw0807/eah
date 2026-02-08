@@ -194,16 +194,18 @@ export class AuctionsScheduler {
     });
 
     // 2. 낙찰자의 최종 낙찰 금액을 제외한 이전 입찰들의 잠금 해제
+    // 이전 입찰들은 이미 currentAmount가 차감되었으므로, 잠금 해제 시 currentAmount를 증가시켜야 함
     for (const bid of winnerBids) {
       if (bid.id !== winningBidId) {
         // 최종 낙찰 입찰이 아닌 이전 입찰들은 잠금 해제
+        // decrementLockedAmount: lockedAmount 감소, currentAmount 증가 (돈을 돌려받음)
         try {
           await this.accountsService.decrementLockedAmount(
             winningBidderId,
             bid.amount.toNumber(),
           );
           this.logger.log(
-            `낙찰자 ${winningBidderId}의 이전 입찰(ID: ${bid.id}) 잠금 금액 ${bid.amount.toString()}원 해제 완료`,
+            `낙찰자 ${winningBidderId}의 이전 입찰(ID: ${bid.id}) 잠금 금액 ${bid.amount.toString()}원 해제 완료 (돈 반환)`,
           );
         } catch (error: any) {
           this.logger.error(
@@ -214,11 +216,16 @@ export class AuctionsScheduler {
       }
     }
 
-    // 3. 낙찰자의 최종 낙찰 금액 차감 (이미 currentAmount는 입찰 시 차감됨)
+    // 3. 낙찰자의 최종 낙찰 금액 차감
+    // 최종 낙찰 금액은 이미 입찰 시 currentAmount에서 차감되었고, lockedAmount에 잠겨있음
+    // 이제 lockedAmount에서만 차감하면 됨 (실제로 돈이 나감)
     try {
       await this.accountsService.deductWinningBidAmount(
         winningBidderId,
         winningAmount,
+      );
+      this.logger.log(
+        `낙찰자 ${winningBidderId}의 최종 낙찰 금액 ${winningAmount}원 차감 완료`,
       );
     } catch (error: any) {
       this.logger.error(
@@ -227,9 +234,12 @@ export class AuctionsScheduler {
       throw error;
     }
 
-    // 4. 판매자에게 낙찰 금액 입금
+    // 4. 판매자에게 낙찰 금액 입금 (최종 낙찰 금액만 입금)
     try {
       await this.accountsService.depositToSeller(sellerId, winningAmount);
+      this.logger.log(
+        `판매자 ${sellerId}에게 낙찰 금액 ${winningAmount}원 입금 완료`,
+      );
     } catch (error: any) {
       this.logger.error(`판매자 ${sellerId}에게 입금 실패: ${error?.message}`);
       throw error;
