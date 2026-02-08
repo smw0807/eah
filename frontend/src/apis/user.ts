@@ -19,3 +19,8 @@ export const getMyAccount = async () => {
   const response = await get(`/accounts`);
   return response.json();
 };
+
+export const getMyBidAuctions = async () => {
+  const response = await get(`/auctions/my-bids`);
+  return response.json();
+};

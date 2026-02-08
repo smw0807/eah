@@ -6,6 +6,7 @@ import AuctionDetail from "@/pages/auction/Detail";
 import MyPage from "@/pages/mypage/MyPage";
 import MySalesPage from "@/pages/mypage/MySalesPage";
 import MyBidsPage from "@/pages/mypage/MyBidsPage";
+import MyWonAuctionsPage from "@/pages/mypage/MyWonAuctionsPage";
 import { Route, Routes } from "react-router";
 export default function Router() {
   return (
@@ -19,6 +20,7 @@ export default function Router() {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mypage/sales" element={<MySalesPage />} />
           <Route path="/mypage/bids" element={<MyBidsPage />} />
+          <Route path="/mypage/won-auctions" element={<MyWonAuctionsPage />} />
         </Route>
       </Route>
     </Routes>

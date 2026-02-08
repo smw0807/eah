@@ -202,4 +202,22 @@ export class AuctionsService {
     });
     return auctions;
   }
+
+  // 나에게 낙찰된 경매 목록 조회
+  async getMyBids(userId: number): Promise<Auction[]> {
+    const auctions = await this.prisma.auction.findMany({
+      where: { winningBid: { bidderId: userId } },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        seller: true,
+        category: true,
+        subCategory: true,
+        bids: true,
+        winningBid: true,
+      },
+    });
+    return auctions;
+  }
 }
