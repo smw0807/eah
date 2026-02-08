@@ -18,12 +18,9 @@ export class AuctionsScheduler {
   // 1분마다 실행
   @Cron(CronExpression.EVERY_MINUTE)
   async handleAuctionScheduler() {
-    this.logger.log('경매 스케줄러 실행');
-
     try {
       await this.handleScheduledAuctions();
       await this.handleExpiredAuctions();
-      this.logger.log('경매 스케줄러 완료');
     } catch (error: any) {
       this.logger.error(
         `경매 스케줄러 오류: ${error?.message || 'Unknown error'}`,
