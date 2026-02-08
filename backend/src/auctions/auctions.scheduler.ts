@@ -91,7 +91,6 @@ export class AuctionsScheduler {
     });
 
     if (expiredAuctions.length === 0) {
-      this.logger.log('종료할 경매가 없습니다.');
       return;
     }
 
@@ -177,12 +176,45 @@ export class AuctionsScheduler {
     // 낙찰자가 있는 경우
     const winningAmount = winningBid.amount.toNumber();
     const winningBidderId = winningBid.bidderId;
+    const winningBidId = winningBid.id;
 
     this.logger.log(
       `경매 ID ${auctionId}: 낙찰 금액 ${winningAmount}원, 낙찰자 ${winningBidderId}, 판매자 ${sellerId}`,
     );
 
-    // 1. 낙찰자의 잠금 금액 차감 (이미 currentAmount는 입찰 시 차감됨)
+    // 1. 낙찰자의 모든 입찰 내역 조회
+    const winnerBids = await this.prisma.bid.findMany({
+      where: {
+        auctionId,
+        bidderId: winningBidderId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // 2. 낙찰자의 최종 낙찰 금액을 제외한 이전 입찰들의 잠금 해제
+    for (const bid of winnerBids) {
+      if (bid.id !== winningBidId) {
+        // 최종 낙찰 입찰이 아닌 이전 입찰들은 잠금 해제
+        try {
+          await this.accountsService.decrementLockedAmount(
+            winningBidderId,
+            bid.amount.toNumber(),
+          );
+          this.logger.log(
+            `낙찰자 ${winningBidderId}의 이전 입찰(ID: ${bid.id}) 잠금 금액 ${bid.amount.toString()}원 해제 완료`,
+          );
+        } catch (error: any) {
+          this.logger.error(
+            `낙찰자 ${winningBidderId}의 이전 입찰(ID: ${bid.id}) 잠금 해제 실패: ${error?.message}`,
+          );
+          throw error;
+        }
+      }
+    }
+
+    // 3. 낙찰자의 최종 낙찰 금액 차감 (이미 currentAmount는 입찰 시 차감됨)
     try {
       await this.accountsService.deductWinningBidAmount(
         winningBidderId,
@@ -195,7 +227,7 @@ export class AuctionsScheduler {
       throw error;
     }
 
-    // 2. 판매자에게 낙찰 금액 입금
+    // 4. 판매자에게 낙찰 금액 입금
     try {
       await this.accountsService.depositToSeller(sellerId, winningAmount);
     } catch (error: any) {
@@ -203,7 +235,7 @@ export class AuctionsScheduler {
       throw error;
     }
 
-    // 3. 낙찰자가 아닌 다른 입찰자들의 잠금 금액 해제
+    // 5. 낙찰자가 아닌 다른 입찰자들의 잠금 금액 해제
     const otherBids = await this.prisma.bid.findMany({
       where: {
         auctionId,
