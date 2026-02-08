@@ -115,26 +115,52 @@ export class BidsController {
       );
     }
 
+    // 경매 정보 조회 (판매자 ID 확인용)
+    const auction = await this.auctionsService.getAuctionDetail(+auctionId);
+    if (!auction) {
+      throw new BadRequestException('경매를 찾을 수 없습니다.');
+    }
+
+    const sellerId = auction.sellerId;
+    const buyerId = user.id;
+
     // 즉시구매 생성
-    const createdBid = await this.bidsService.createBuyout(+auctionId, user.id);
+    const createdBid = await this.bidsService.createBuyout(+auctionId, buyerId);
+    const buyoutAmount = createdBid.amount.toNumber();
 
     // 즉시구매 시 이전 입찰자들의 잠금 해제
+    // 단, 판매자가 자신의 경매에 입찰한 경우는 해제하지 않음 (판매자가 자신에게 돈을 주는 것이므로)
     const previousBids = await this.bidsService.getAuctionBids(+auctionId);
     for (const bid of previousBids) {
-      if (bid.bidderId !== user.id && bid.id !== createdBid.id) {
-        await this.accountsService.decrementLockedAmount(
-          bid.bidderId,
-          bid.amount.toNumber(),
-        );
+      if (bid.id !== createdBid.id) {
+        // 판매자가 자신의 경매에 입찰한 경우는 해제하지 않음
+        if (bid.bidderId === sellerId) {
+          // 판매자의 입찰은 해제하지 않고, lockedAmount에서 차감만 함
+          // 판매자가 자신의 경매에 입찰한 금액은 이미 자신의 돈이므로
+          // 즉시구매 시 그 금액은 판매자에게 돌아가지 않음
+          await this.accountsService.deductWinningBidAmount(
+            sellerId,
+            bid.amount.toNumber(),
+          );
+        } else {
+          // 일반 입찰자들의 잠금 해제 (즉시구매자 포함)
+          await this.accountsService.decrementLockedAmount(
+            bid.bidderId,
+            bid.amount.toNumber(),
+          );
+        }
       }
     }
 
     // 즉시구매 가격만큼 currentAmount 차감
-    await this.accountsService.updateAccount(user.id, {
+    await this.accountsService.updateAccount(buyerId, {
       currentAmount: {
-        decrement: new Prisma.Decimal(createdBid.amount.toString()),
+        decrement: new Prisma.Decimal(buyoutAmount),
       },
     });
+
+    // 판매자에게 즉시구매 가격 입금
+    await this.accountsService.depositToSeller(sellerId, buyoutAmount);
 
     // WebSocket으로 실시간 업데이트 브로드캐스트
     await this.auctionsGateway.handleBidCreated(+auctionId);

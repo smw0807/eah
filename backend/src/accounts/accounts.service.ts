@@ -130,4 +130,13 @@ export class AccountsService {
     );
     return account;
   }
+
+  // 락 금액 초기화
+  async resetLockedAmount(userId: number) {
+    const account = await this.prisma.userAccount.update({
+      where: { userId },
+      data: { lockedAmount: 0 },
+    });
+    return account;
+  }
 }
