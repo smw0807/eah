@@ -44,6 +44,7 @@ export class AuctionsController {
     );
   }
 
+  // 경매 생성
   @Post()
   @UseGuards(AuthGuard)
   async createAuction(
