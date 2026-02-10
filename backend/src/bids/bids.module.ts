@@ -15,5 +15,6 @@ import { AccountsModule } from 'src/accounts/accounts.module';
   ],
   controllers: [BidsController],
   providers: [BidsService],
+  exports: [BidsService],
 })
 export class BidsModule {}

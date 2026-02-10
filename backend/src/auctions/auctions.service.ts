@@ -120,6 +120,15 @@ export class AuctionsService {
     return newAuction;
   }
 
+  // 경매 취소
+  async cancelAuction(auctionId: number): Promise<Auction> {
+    const auction = await this.prisma.auction.update({
+      where: { id: auctionId },
+      data: { status: AuctionStatus.CANCELED },
+    });
+    return auction;
+  }
+
   // 현재 진행중인 경매 상품인지 확인
   async isCurrentAuction(auctionId: number): Promise<boolean> {
     const auction = await this.prisma.auction.findUnique({

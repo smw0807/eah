@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -12,12 +13,16 @@ import { AuctionsService } from './auctions.service';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
 import { AuctionCreateInput } from 'generated/prisma/models';
 import { CurrentUser } from 'src/auth/decorator/current.user';
-import { User } from 'generated/prisma/client';
+import { AuctionStatus, User } from 'generated/prisma/client';
 import { SearchAuctionsQuery } from './models/search.model';
+import { BidsService } from 'src/bids/bids.service';
 
 @Controller('auctions')
 export class AuctionsController {
-  constructor(private readonly auctionsService: AuctionsService) {}
+  constructor(
+    private readonly auctionsService: AuctionsService,
+    private readonly bidsService: BidsService,
+  ) {}
 
   @Get()
   async getAuctions(
@@ -78,6 +83,31 @@ export class AuctionsController {
       throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
     }
     return this.auctionsService.createAuction(auction, user.id);
+  }
+
+  // 경매 취소
+  @Patch(':id/cancel')
+  @UseGuards(AuthGuard)
+  async cancelAuction(
+    @Param('id')
+    id: number,
+    @CurrentUser() user: User,
+  ) {
+    // 경매 주인이 아니면 취소 불가
+    const auction = await this.auctionsService.getAuctionDetail(+id);
+    if (auction.sellerId !== user.id) {
+      throw new BadRequestException('경매 취소 권한이 없습니다.');
+    }
+    // 경매 존재 확인
+    const bids = await this.bidsService.getAuctionBids(+id);
+    if (bids.length > 0) {
+      throw new BadRequestException('경매에 입찰이 있으면 취소할 수 없습니다.');
+    }
+    // 경매 상태가 진행중이 아니면 취소 불가
+    if (auction.status !== AuctionStatus.OPEN) {
+      throw new BadRequestException('경매 상태가 진행중이 아닙니다.');
+    }
+    return this.auctionsService.cancelAuction(+id);
   }
 
   // 현재 진행중인 경매 상품인지 확인
