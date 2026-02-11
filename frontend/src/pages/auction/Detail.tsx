@@ -22,6 +22,7 @@ import { toastError, toastSuccess } from "@/lib/toast";
 import { useOpenBidModal, useBidModalActions } from "@/stores/bid-modal";
 import { useOpenAlertModal } from "@/stores/alert-modal";
 import { useCreateBuyout } from "@/hooks/mutations/bid/useCreateBuyout";
+import { useGetCurrentUser } from "@/hooks/queries/auth/useGetCurrentUser";
 
 export default function AuctionDetail() {
   const navigate = useNavigate();
@@ -50,6 +51,8 @@ export default function AuctionDetail() {
     },
   });
 
+  const { data: user } = useGetCurrentUser();
+  console.log(user);
   // WebSocket 연결 (실시간 업데이트)
   const { isConnected } = useAuctionWebSocket(auctionId);
 
