@@ -146,95 +146,35 @@ export class AuctionsScheduler {
   ) {
     if (!winningBid) {
       // 낙찰자가 없는 경우: 모든 입찰자들의 잠금 금액 해제
-      this.logger.log(
-        `경매 ID ${auctionId}: 낙찰자가 없어 모든 입찰자의 잠금 금액을 해제합니다.`,
-      );
-
-      const allBids = await this.prisma.bid.findMany({
-        where: { auctionId },
-        include: { bidder: true },
-      });
-
-      for (const bid of allBids) {
-        try {
-          await this.accountsService.decrementLockedAmount(
-            bid.bidderId,
-            bid.amount.toNumber(),
-          );
-          this.logger.log(
-            `입찰자 ${bid.bidderId}의 잠금 금액 ${bid.amount.toString()}원 해제 완료`,
-          );
-        } catch (error: any) {
-          this.logger.error(
-            `입찰자 ${bid.bidderId}의 잠금 금액 해제 실패: ${error?.message}`,
-          );
-        }
-      }
+      this.logger.log(`경매 ID ${auctionId}: 낙찰자가 없습니다.`);
       return;
     }
 
-    // 낙찰자가 있는 경우
+    // 1. 낙찰자가 있는 경우
     const winningAmount = winningBid.amount.toNumber();
     const winningBidderId = winningBid.bidderId;
-    const winningBidId = winningBid.id;
 
     this.logger.log(
       `경매 ID ${auctionId}: 낙찰 금액 ${winningAmount}원, 낙찰자 ${winningBidderId}, 판매자 ${sellerId}`,
     );
 
-    // 1. 낙찰자의 모든 입찰 내역 조회
-    const winnerBids = await this.prisma.bid.findMany({
-      where: {
-        auctionId,
-        bidderId: winningBidderId,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    // 2. 낙찰자의 최종 낙찰 금액을 제외한 이전 입찰들의 잠금 해제
-    // 이전 입찰들은 이미 currentAmount가 차감되었으므로, 잠금 해제 시 currentAmount를 증가시켜야 함
-    for (const bid of winnerBids) {
-      if (bid.id !== winningBidId) {
-        // 최종 낙찰 입찰이 아닌 이전 입찰들은 잠금 해제
-        // decrementLockedAmount: lockedAmount 감소, currentAmount 증가 (돈을 돌려받음)
-        try {
-          await this.accountsService.decrementLockedAmount(
-            winningBidderId,
-            bid.amount.toNumber(),
-          );
-          this.logger.log(
-            `낙찰자 ${winningBidderId}의 이전 입찰(ID: ${bid.id}) 잠금 금액 ${bid.amount.toString()}원 해제 완료 (돈 반환)`,
-          );
-        } catch (error: any) {
-          this.logger.error(
-            `낙찰자 ${winningBidderId}의 이전 입찰(ID: ${bid.id}) 잠금 해제 실패: ${error?.message}`,
-          );
-          throw error;
-        }
-      }
-    }
-
-    // 3. 낙찰자의 최종 낙찰 금액 차감
-    // 최종 낙찰 금액은 이미 입찰 시 currentAmount에서 차감되었고, lockedAmount에 잠겨있음
-    // 이제 lockedAmount에서만 차감하면 됨 (실제로 돈이 나감)
+    // 2. 낙찰자의 잠금 금액 해제
     try {
       await this.accountsService.deductWinningBidAmount(
         winningBidderId,
         winningAmount,
       );
       this.logger.log(
-        `낙찰자 ${winningBidderId}의 최종 낙찰 금액 ${winningAmount}원 차감 완료`,
+        `낙찰자 ${winningBidderId}의 잠금 금액 ${winningAmount}원 해제 완료`,
       );
     } catch (error: any) {
       this.logger.error(
-        `낙찰자 ${winningBidderId}의 잠금 금액 차감 실패: ${error?.message}`,
+        `낙찰자 ${winningBidderId}의 잠금 금액 해제 실패: ${error?.message}`,
       );
       throw error;
     }
 
-    // 4. 판매자에게 낙찰 금액 입금 (최종 낙찰 금액만 입금)
+    // 3. 판매자에게 낙찰 금액 입금
     try {
       await this.accountsService.depositToSeller(sellerId, winningAmount);
       this.logger.log(
@@ -243,32 +183,6 @@ export class AuctionsScheduler {
     } catch (error: any) {
       this.logger.error(`판매자 ${sellerId}에게 입금 실패: ${error?.message}`);
       throw error;
-    }
-
-    // 5. 낙찰자가 아닌 다른 입찰자들의 잠금 금액 해제
-    const otherBids = await this.prisma.bid.findMany({
-      where: {
-        auctionId,
-        bidderId: { not: winningBidderId },
-      },
-      include: { bidder: true },
-    });
-
-    for (const bid of otherBids) {
-      try {
-        await this.accountsService.decrementLockedAmount(
-          bid.bidderId,
-          bid.amount.toNumber(),
-        );
-        this.logger.log(
-          `입찰자 ${bid.bidderId}의 잠금 금액 ${bid.amount.toString()}원 해제 완료`,
-        );
-      } catch (error: any) {
-        this.logger.error(
-          `입찰자 ${bid.bidderId}의 잠금 금액 해제 실패: ${error?.message}`,
-        );
-        // 다른 입찰자 잠금 해제 실패는 전체 프로세스를 중단하지 않음
-      }
     }
 
     this.logger.log(
