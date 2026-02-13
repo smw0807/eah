@@ -56,6 +56,21 @@ export const put = async (
   });
 };
 
+export const patch = async (
+  url: string,
+  data: null | Record<
+    string,
+    string | number | boolean | null | undefined | Date | File
+  >,
+  customHeaders?: Record<string, string>,
+) => {
+  return fetch(import.meta.env.VITE_API_URL + url, {
+    method: "PATCH",
+    headers: getHeaders(customHeaders),
+    body: data ? JSON.stringify(data) : null,
+  });
+};
+
 export const del = async (
   url: string,
   customHeaders?: Record<string, string>,

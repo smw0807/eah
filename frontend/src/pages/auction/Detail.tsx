@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   Wifi,
   WifiOff,
+  Edit,
+  X,
 } from "lucide-react";
 import type { Auction, Bid } from "@/models/auction";
 import { statusColors, statusLabels } from "@/lib/constants";
@@ -23,6 +25,7 @@ import { useOpenBidModal, useBidModalActions } from "@/stores/bid-modal";
 import { useOpenAlertModal } from "@/stores/alert-modal";
 import { useCreateBuyout } from "@/hooks/mutations/bid/useCreateBuyout";
 import { useGetCurrentUser } from "@/hooks/queries/auth/useGetCurrentUser";
+import { useCancelAuction } from "@/hooks/mutations/auction/useCancelAuction";
 
 export default function AuctionDetail() {
   const navigate = useNavigate();
@@ -50,11 +53,26 @@ export default function AuctionDetail() {
       toastError(error.message);
     },
   });
+  const { mutate: cancelAuction } = useCancelAuction({
+    onSuccess: (response) => {
+      if (response && response.statusCode === 400) {
+        toastError(response.message as string);
+        return;
+      } else {
+        toastSuccess("경매가 취소되었습니다.");
+      }
+    },
+    onError: (error) => {
+      toastError(error.message);
+    },
+  });
 
   const { data: user } = useGetCurrentUser();
-  console.log(user);
   // WebSocket 연결 (실시간 업데이트)
   const { isConnected } = useAuctionWebSocket(auctionId);
+
+  // 판매자 본인인지 확인
+  const isSeller = user?.id === auction?.sellerId;
 
   if (isAuctionLoading) {
     return (
@@ -119,6 +137,22 @@ export default function AuctionDetail() {
       },
     });
     return;
+  };
+
+  // 경매 수정
+  const handleEditAuction = () => {
+    // TODO: 경매 수정 기능 구현
+  };
+
+  // 경매 취소
+  const handleCancelAuction = () => {
+    openAlertModal({
+      title: "경매 취소",
+      description: "경매를 취소하시겠습니까?",
+      onPositive: () => {
+        cancelAuction(auctionId);
+      },
+    });
   };
 
   return (
@@ -290,8 +324,33 @@ export default function AuctionDetail() {
             </CardContent>
           </Card>
 
+          {/* 판매자용 버튼 (경매 취소, 수정) */}
+          {isSeller &&
+            (auction.status === "OPEN" || auction.status === "SCHEDULED") && (
+              <div className="flex gap-3">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleEditAuction}
+                >
+                  <Edit className="size-5" />
+                  경매 수정
+                </Button>
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleCancelAuction}
+                >
+                  <X className="size-5" />
+                  경매 취소
+                </Button>
+              </div>
+            )}
+
           {/* 입찰 버튼 */}
-          {auction.status === "OPEN" && (
+          {auction.status === "OPEN" && !isSeller && (
             <div className="flex gap-3">
               <Button size="lg" className="flex-1" onClick={handleBid}>
                 <TrendingUp className="size-5" />

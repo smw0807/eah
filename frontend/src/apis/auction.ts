@@ -1,4 +1,4 @@
-import { get, post } from "@/lib/fetch";
+import { get, patch, post } from "@/lib/fetch";
 import type { AuctionCreateInput, SearchAuctionsQuery } from "@/models/auction";
 
 export const createAuction = async (auction: AuctionCreateInput) => {
@@ -27,5 +27,10 @@ export const isCurrentAuction = async (auctionId: number) => {
 
 export const getAuctionDetail = async (auctionId: number) => {
   const response = await get(`/auctions/${auctionId}`);
+  return response.json();
+};
+
+export const cancelAuction = async (auctionId: number) => {
+  const response = await patch(`/auctions/${auctionId}/cancel`, null);
   return response.json();
 };

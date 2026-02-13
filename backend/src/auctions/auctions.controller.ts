@@ -16,12 +16,14 @@ import { CurrentUser } from 'src/auth/decorator/current.user';
 import { AuctionStatus, User } from 'generated/prisma/client';
 import { SearchAuctionsQuery } from './models/search.model';
 import { BidsService } from 'src/bids/bids.service';
+import { AuctionsGateway } from './auctions.gateway';
 
 @Controller('auctions')
 export class AuctionsController {
   constructor(
     private readonly auctionsService: AuctionsService,
     private readonly bidsService: BidsService,
+    private readonly auctionsGateway: AuctionsGateway,
   ) {}
 
   @Get()
@@ -107,7 +109,13 @@ export class AuctionsController {
     if (auction.status !== AuctionStatus.OPEN) {
       throw new BadRequestException('경매 상태가 진행중이 아닙니다.');
     }
-    return this.auctionsService.cancelAuction(+id);
+    const canceledAuction = await this.auctionsService.cancelAuction(+id);
+
+    await this.auctionsGateway.handleAuctionStatusChange(
+      +id,
+      AuctionStatus.CANCELED,
+    );
+    return canceledAuction;
   }
 
   // 현재 진행중인 경매 상품인지 확인
