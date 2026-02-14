@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { AuctionsService } from './auctions.service';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
-import { AuctionCreateInput } from 'generated/prisma/models';
+import {
+  AuctionCreateInput,
+  AuctionUpdateInput,
+} from 'generated/prisma/models';
 import { CurrentUser } from 'src/auth/decorator/current.user';
 import { AuctionStatus, User } from 'generated/prisma/client';
 import { SearchAuctionsQuery } from './models/search.model';
@@ -85,6 +88,78 @@ export class AuctionsController {
       throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
     }
     return this.auctionsService.createAuction(auction, user.id);
+  }
+
+  // 경매 수정
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  async updateAuction(
+    @Param('id')
+    id: number,
+    @Body() updateAuction: AuctionUpdateInput,
+    @CurrentUser() user: User,
+  ) {
+    const auction = await this.auctionsService.getAuctionDetail(+id);
+    if (auction.sellerId !== user.id) {
+      throw new BadRequestException('경매 수정 권한이 없습니다.');
+    }
+    if (auction.status === AuctionStatus.OPEN) {
+      throw new BadRequestException(
+        '경매 상태가 진행중이면 수정할 수 없습니다.',
+      );
+    }
+    if (auction.status === AuctionStatus.CLOSED) {
+      throw new BadRequestException(
+        '경매 상태가 종료되었으면 수정할 수 없습니다.',
+      );
+    }
+    if (auction.status === AuctionStatus.CANCELED) {
+      throw new BadRequestException(
+        '경매 상태가 취소되었으면 수정할 수 없습니다.',
+      );
+    }
+    if (
+      updateAuction.startAt &&
+      updateAuction.endAt &&
+      updateAuction.startAt >= updateAuction.endAt
+    ) {
+      throw new BadRequestException(
+        '시작일시는 종료일시보다 이전일 수 없습니다.',
+      );
+    }
+    if (
+      updateAuction.imageUrl &&
+      typeof updateAuction.imageUrl === 'string' &&
+      !updateAuction.imageUrl.startsWith('https://')
+    ) {
+      throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
+    }
+    if (
+      updateAuction.startPrice &&
+      typeof updateAuction.startPrice === 'number' &&
+      updateAuction.startPrice <= 0
+    ) {
+      throw new BadRequestException('시작가격은 양수여야 합니다.');
+    }
+    if (
+      updateAuction.minBidStep &&
+      typeof updateAuction.minBidStep === 'number' &&
+      updateAuction.minBidStep <= 0
+    ) {
+      throw new BadRequestException('최소 입찰 단위는 양수여야 합니다.');
+    }
+    if (
+      updateAuction.buyoutPrice &&
+      typeof updateAuction.buyoutPrice === 'number' &&
+      updateAuction.buyoutPrice <= 0
+    ) {
+      throw new BadRequestException('즉시구매가는 양수여야 합니다.');
+    }
+    const bids = await this.bidsService.getAuctionBids(+id);
+    if (bids.length > 0) {
+      throw new BadRequestException('경매에 입찰이 있으면 수정할 수 없습니다.');
+    }
+    return this.auctionsService.updateAuction(+id, updateAuction);
   }
 
   // 경매 취소

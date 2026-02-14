@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Auction, AuctionStatus, Prisma } from 'generated/prisma/client';
-import { AuctionCreateInput } from 'generated/prisma/models';
+import {
+  AuctionCreateInput,
+  AuctionUpdateInput,
+} from 'generated/prisma/models';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SearchAuctionsQuery } from './models/search.model';
 
@@ -118,6 +121,18 @@ export class AuctionsService {
       },
     });
     return newAuction;
+  }
+
+  // 경매 수정
+  async updateAuction(
+    auctionId: number,
+    updateAuction: AuctionUpdateInput,
+  ): Promise<Auction> {
+    const updatedAuction = await this.prisma.auction.update({
+      where: { id: auctionId },
+      data: updateAuction,
+    });
+    return updatedAuction;
   }
 
   // 경매 취소
