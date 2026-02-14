@@ -76,3 +76,16 @@ export type Bid = {
   bidderId: number;
   amount: number;
 };
+
+export type AuctionUpdateInput = {
+  title?: string;
+  description?: string | null;
+  status?: AuctionStatus;
+  startPrice?: number | string;
+  minBidStep?: number | string;
+  currentPrice?: number | string | null;
+  buyoutPrice?: number | string | null;
+  imageUrl?: string | null;
+  startAt?: Date | string;
+  endAt?: Date | string;
+};

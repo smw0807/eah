@@ -142,6 +142,21 @@ export default function AuctionDetail() {
   // 경매 수정
   const handleEditAuction = () => {
     // TODO: 경매 수정 기능 구현
+    if (auction.status === "CLOSED") {
+      toastError("경매 상태가 종료되었으면 수정할 수 없습니다.");
+      return;
+    }
+    if (auction.status === "CANCELED") {
+      toastError("경매 상태가 취소되었으면 수정할 수 없습니다.");
+      return;
+    }
+    openAlertModal({
+      title: "경매 수정",
+      description: "경매를 수정하시겠습니까?",
+      onPositive: () => {
+        navigate(`/auction/update/${auctionId}`);
+      },
+    });
   };
 
   // 경매 취소
