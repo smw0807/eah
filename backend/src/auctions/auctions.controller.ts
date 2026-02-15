@@ -27,7 +27,7 @@ export class AuctionsController {
     private readonly auctionsService: AuctionsService,
     private readonly bidsService: BidsService,
     private readonly auctionsGateway: AuctionsGateway,
-  ) {}
+  ) { }
 
   @Get()
   async getAuctions(
@@ -175,10 +175,14 @@ export class AuctionsController {
     if (bids.length > 0) {
       throw new BadRequestException('경매에 입찰이 있으면 취소할 수 없습니다.');
     }
-    // 경매 상태가 진행중이 아니면 취소 불가
-    if (auction.status !== AuctionStatus.OPEN) {
-      throw new BadRequestException('경매 상태가 진행중이 아닙니다.');
+
+    if (auction.status === AuctionStatus.CANCELED) {
+      throw new BadRequestException('이미 취소된 경매입니다.');
     }
+    if (auction.status === AuctionStatus.CLOSED) {
+      throw new BadRequestException('이미 종료된 경매입니다.');
+    }
+
     const canceledAuction = await this.auctionsService.cancelAuction(+id);
 
     await this.auctionsGateway.handleAuctionStatusChange(
