@@ -103,11 +103,6 @@ export class AuctionsController {
     if (auction.sellerId !== user.id) {
       throw new BadRequestException('경매 수정 권한이 없습니다.');
     }
-    if (auction.status === AuctionStatus.OPEN) {
-      throw new BadRequestException(
-        '경매 상태가 진행중이면 수정할 수 없습니다.',
-      );
-    }
     if (auction.status === AuctionStatus.CLOSED) {
       throw new BadRequestException(
         '경매 상태가 종료되었으면 수정할 수 없습니다.',

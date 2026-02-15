@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateAuction } from "@/hooks/mutations/auction/useCreateAuction";
+import { useUpdateAuction } from "@/hooks/mutations/auction/useUpdateAction";
 import { useImageUpload } from "@/hooks/mutations/image/useImageUpload";
 import { useGetAuction } from "@/hooks/queries/auction/useGetAuction";
 import { useSubCategory } from "@/hooks/queries/useSubCategory";
@@ -17,14 +18,17 @@ import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import { toastError, toastSuccess } from "@/lib/toast";
 import type { Image } from "@/models/auction";
 import { useAlertModal } from "@/stores/alert-modal";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
-export default function CreateAuction() {
+export default function EditAuction() {
   const navigate = useNavigate();
   const openAlertModal = useAlertModal();
+  const { id } = useParams();
 
-  const [mode, setMode] = useState<"create" | "update">("create");
+  const isEditMode = !!(id && !isNaN(Number(id)));
+  const auctionId = isEditMode ? Number(id) : 0;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -37,24 +41,31 @@ export default function CreateAuction() {
   const [buyoutPrice, setBuyoutPrice] = useState(0);
   const [image, setImage] = useState<Image | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-
-  const { id } = useParams();
-  useEffect(() => {
-    if (id && !isNaN(Number(id))) {
-      setMode("update");
-    }
-  }, [id, mode]);
-  const { data: auction, isLoading: isAuctionLoading } = useGetAuction(
-    Number(id),
-  );
-  
+  const formInitializedRef = useRef(false);
 
   const { data: topCategories } = useTopCategory();
   const { data: subCategories } = useSubCategory(categoryId);
+  const { data: auction, isLoading: isAuctionLoading } = useGetAuction(
+    auctionId,
+  );
   const { mutate: createAuction } = useCreateAuction({
     onSuccess: () => {
       toastSuccess("상품등록이 완료되었습니다.");
       navigate("/");
+    },
+    onError: (error) => {
+      toastError(error.message);
+    },
+  });
+  const { mutate: updateAuction } = useUpdateAuction({
+    onSuccess: (response) => {
+      if (response && response.statusCode === 400) {
+        toastError(response.message as string);
+        return;
+      } else {
+        toastSuccess("상품수정이 완료되었습니다.");
+        navigate("/");
+      }
     },
     onError: (error) => {
       toastError(error.message);
@@ -65,6 +76,20 @@ export default function CreateAuction() {
       toastError(error.message);
     },
   });
+
+  useEffect(() => {
+    if (!isEditMode || !auction || formInitializedRef.current) return;
+    formInitializedRef.current = true;
+    setTitle(auction.title);
+    setDescription(auction.description ?? "");
+    setStartPrice(Number(auction.startPrice) || 0);
+    setMinBidStep(Number(auction.minBidStep) || 0);
+    setCategoryId(auction.categoryId);
+    setSubCategoryId(auction.subCategoryId);
+    setStartAt(new Date(auction.startAt));
+    setEndAt(new Date(auction.endAt));
+    setBuyoutPrice(Number(auction.buyoutPrice) || 0);
+  }, [isEditMode, auction]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -139,33 +164,83 @@ export default function CreateAuction() {
       return;
     }
 
+    const actionLabel = isEditMode ? "상품수정" : "상품등록";
+    console.log(title,
+      description,
+      startPrice,
+      minBidStep,
+      buyoutPrice,
+      startAt,
+      endAt);
     openAlertModal.actions.open({
-      title: "상품등록",
-      description: "상품등록을 진행하시겠습니까?",
+      title: actionLabel,
+      description: `${actionLabel}을 진행하시겠습니까?`,
       onPositive: async () => {
-        let imageUrl = null;
+        let imageUrl: string | null = null;
         if (image) {
           const upload = await uploadImage(image.file);
           imageUrl = upload.url;
+        } else if (isEditMode && auction?.imageUrl) {
+          imageUrl = auction.imageUrl;
         }
-        createAuction({
-          title,
-          description,
-          startPrice,
-          minBidStep,
-          buyoutPrice,
-          categoryId,
-          subCategoryId,
-          startAt,
-          endAt,
-          imageUrl,
-        });
+        if (isEditMode) {
+          updateAuction({
+            auctionId,
+            updateAuctionInput: {
+              title,
+              description,
+              startPrice,
+              minBidStep,
+              buyoutPrice,
+              startAt,
+              endAt,
+              imageUrl,
+            },
+          });
+        } else {
+          createAuction({
+            title,
+            description,
+            startPrice,
+            minBidStep,
+            buyoutPrice,
+            categoryId,
+            subCategoryId,
+            startAt,
+            endAt,
+            imageUrl,
+          });
+        }
       },
     });
   };
+
+  if (isEditMode && isAuctionLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-muted-foreground">상품 정보를 불러오는 중...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">상품등록</h1>
+      <div className="flex items-center gap-2">
+        {isEditMode && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => navigate(-1)}
+            aria-label="뒤로가기"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+        )}
+        <h1 className="text-2xl font-bold">
+          {isEditMode ? "상품수정" : "상품등록"}
+        </h1>
+      </div>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label>상품명</Label>
@@ -188,7 +263,10 @@ export default function CreateAuction() {
         <div className="flex flex-col gap-2">
           <Label>카테고리</Label>
           <div className="flex gap-2">
-            <Select onValueChange={(value) => setCategoryId(Number(value))}>
+            <Select
+              value={categoryId ? categoryId.toString() : ""}
+              onValueChange={(value) => setCategoryId(Number(value))}
+            >
               <SelectTrigger className="w-50">
                 <SelectValue placeholder="카테고리를 선택해주세요." />
               </SelectTrigger>
@@ -205,9 +283,12 @@ export default function CreateAuction() {
                   ))}
               </SelectContent>
             </Select>
-            <Select onValueChange={(value) => setSubCategoryId(Number(value))}>
+            <Select
+              value={subCategoryId ? subCategoryId.toString() : ""}
+              onValueChange={(value) => setSubCategoryId(Number(value))}
+            >
               <SelectTrigger className="w-50">
-                <SelectValue placeholder="카테고리를 선택해주세요." />
+                <SelectValue placeholder="하위 카테고리를 선택해주세요." />
               </SelectTrigger>
               <SelectContent>
                 {subCategories?.map((subCategory) => (
@@ -235,7 +316,10 @@ export default function CreateAuction() {
         </div>
         <div className="flex flex-col gap-2">
           <Label>입찰 단위</Label>
-          <Select onValueChange={(value) => setMinBidStep(Number(value))}>
+          <Select
+            value={minBidStep ? minBidStep.toString() : ""}
+            onValueChange={(value) => setMinBidStep(Number(value))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="입찰 단위를 선택해주세요." />
             </SelectTrigger>
@@ -293,12 +377,21 @@ export default function CreateAuction() {
       </div>
       <div className="flex flex-col gap-2">
         <Label>상품 이미지</Label>
-        {image && (
+        {image ? (
           <img
             src={image.previewUrl}
             alt="이미지"
             className="h-100 w-100 object-cover"
           />
+        ) : (
+          isEditMode &&
+          auction?.imageUrl && (
+            <img
+              src={auction.imageUrl}
+              alt="현재 상품 이미지"
+              className="h-100 w-100 object-cover"
+            />
+          )
         )}
         <Input
           type="file"
@@ -307,7 +400,9 @@ export default function CreateAuction() {
           accept="image/*"
         />
       </div>
-      <Button onClick={handleSubmit}>상품등록</Button>
+      <Button onClick={handleSubmit}>
+        {isEditMode ? "상품수정" : "상품등록"}
+      </Button>
     </div>
   );
 }
