@@ -1,9 +1,8 @@
 import DefaultLayout from "@/layouts/default";
 import UserLayout from "@/layouts/UserLayout";
 import Home from "@/pages";
-import CreateAuction from "@/pages/auction/EditAuction";
+import EditAuction from "@/pages/auction/EditAuction";
 import AuctionDetail from "@/pages/auction/Detail";
-import UpdateAuction from "@/pages/auction/EditAuction";
 import MyPage from "@/pages/mypage/MyPage";
 import MySalesPage from "@/pages/mypage/MySalesPage";
 import MyBidsPage from "@/pages/mypage/MyBidsPage";
@@ -16,9 +15,9 @@ export default function Router() {
         <Route path="/" element={<Home />} />
 
         <Route element={<UserLayout />}>
-          <Route path="/auction/create" element={<CreateAuction />} />
+          <Route path="/auction/create" element={<EditAuction />} />
           <Route path="/auctions/:id" element={<AuctionDetail />} />
-          <Route path="/auction/update/:id" element={<UpdateAuction />} />
+          <Route path="/auction/update/:id" element={<EditAuction />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mypage/sales" element={<MySalesPage />} />
           <Route path="/mypage/bids" element={<MyBidsPage />} />
