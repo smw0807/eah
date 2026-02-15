@@ -11,17 +11,20 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateAuction } from "@/hooks/mutations/auction/useCreateAuction";
 import { useImageUpload } from "@/hooks/mutations/image/useImageUpload";
+import { useGetAuction } from "@/hooks/queries/auction/useGetAuction";
 import { useSubCategory } from "@/hooks/queries/useSubCategory";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import { toastError, toastSuccess } from "@/lib/toast";
 import type { Image } from "@/models/auction";
 import { useAlertModal } from "@/stores/alert-modal";
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
 export default function CreateAuction() {
   const navigate = useNavigate();
   const openAlertModal = useAlertModal();
+
+  const [mode, setMode] = useState<"create" | "update">("create");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -34,6 +37,17 @@ export default function CreateAuction() {
   const [buyoutPrice, setBuyoutPrice] = useState(0);
   const [image, setImage] = useState<Image | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const { id } = useParams();
+  useEffect(() => {
+    if (id && !isNaN(Number(id))) {
+      setMode("update");
+    }
+  }, [id, mode]);
+  const { data: auction, isLoading: isAuctionLoading } = useGetAuction(
+    Number(id),
+  );
+  
 
   const { data: topCategories } = useTopCategory();
   const { data: subCategories } = useSubCategory(categoryId);
