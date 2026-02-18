@@ -1,4 +1,5 @@
-import { get } from "@/lib/fetch";
+import { get, patch } from "@/lib/fetch";;
+import type { UpdateMyProfileInput } from "@/models/user";
 
 export const getMyProfile = async () => {
   const response = await get(`/users/me`);
@@ -22,5 +23,15 @@ export const getMyAccount = async () => {
 
 export const getMyBidAuctions = async () => {
   const response = await get(`/auctions/my-bids`);
+  return response.json();
+};
+
+export const updateMyProfile = async (updateUser: UpdateMyProfileInput) => {
+  const response = await patch(`/users/me`, {
+    email: updateUser.email,
+    password: updateUser.password,
+    name: updateUser.name,
+    nickname: updateUser.nickname,
+  });
   return response.json();
 };

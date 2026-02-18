@@ -11,7 +11,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authUtils: AuthUtils,
-  ) {}
+  ) { }
 
   // 회원정보 조회
   async getMyProfile(userId: number) {
@@ -32,6 +32,24 @@ export class UsersService {
     return user;
   }
   // 회원정보 수정
+  async updateMyProfile(userId: number, updateUser: InputSignup) {
+    const { name, nickname, email, password } = updateUser;
+
+    const updateParams = {
+      name,
+      nickname,
+      email,
+      updatedAt: new Date(),
+    }
+    if (password) {
+      updateParams['passwordHash'] = await this.authUtils.hashPassword(password) as string;
+    }
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateParams,
+    });
+    return user;
+  }
   // 회원탈퇴
   // 비밀번호 변경
 

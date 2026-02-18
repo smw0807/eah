@@ -1,7 +1,9 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User } from "lucide-react";
+import { useOpenProfileEditModal } from "@/stores/edit-profile-modal";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { Pencil, User } from "lucide-react";
 
 interface ProfileCardProps {
   name: string;
@@ -16,6 +18,8 @@ export default function ProfileCard({
   email,
   createdAt,
 }: ProfileCardProps) {
+  const openProfileEditModal = useOpenProfileEditModal();
+
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "yyyy.MM.dd HH:mm", { locale: ko });
   };
@@ -23,9 +27,20 @@ export default function ProfileCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="size-5" />
-          프로필 정보
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <User className="size-5" />
+            프로필 정보
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => openProfileEditModal()}
+            aria-label="프로필 수정"
+          >
+            <Pencil className="size-4" />
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
