@@ -21,7 +21,6 @@ export default function EditProfileModal() {
   const openAlertModal = useAlertModal();
 
   const { data: myProfile } = useGetMyProfile();
-  console.log(myProfile);
   const { mutate: updateMyProfile } = useUpdateProfile();
 
   const [email, setEmail] = useState("");
