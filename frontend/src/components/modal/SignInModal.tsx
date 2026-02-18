@@ -10,10 +10,10 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
 import { useSignIn } from "@/hooks/mutations/auth/useSignIn";
-import { toast } from "sonner";
 import { useOpenSignupModal } from "@/stores/signup-modal";
 import { emailRegex } from "@/lib/regRex";
 import { Label } from "../ui/label";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 export default function SignInModal() {
   const openSignInModal = useSigninModal();
@@ -32,24 +32,22 @@ export default function SignInModal() {
   };
   const handleSubmit = () => {
     if (!email || !password) {
-      toast.error("이메일과 비밀번호를 입력해주세요", {
-        position: "top-center",
-      });
+      toastError("이메일과 비밀번호를 입력해주세요");
       return;
     }
     if (!emailRegex.test(email)) {
-      toast.error("이메일 형식이 올바르지 않습니다", {
-        position: "top-center",
-      });
+      toastError("이메일 형식이 올바르지 않습니다");
       return;
     }
     signIn(
       { email, password },
       {
-        onSuccess: () => {
-          toast.success("로그인 성공", {
-            position: "top-center",
-          });
+        onSuccess: (data) => {
+          if (data && data.statusCode === 401) {
+            toastError(data.message as string);
+            return;
+          }
+          toastSuccess("로그인 성공");
           openSignInModal.actions.close();
         },
       },

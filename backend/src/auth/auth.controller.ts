@@ -23,7 +23,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly authUtils: AuthUtils,
-  ) {}
+  ) { }
 
   // 회원가입
   @Post('signup')
@@ -97,7 +97,12 @@ export class AuthController {
       });
     } catch (error) {
       this.logger.error(error, 'signin');
-      return res.status(401).json({ message: '로그인 실패', statusCode: 401 });
+      if (error.status === 401) {
+        throw new UnauthorizedException(error.message);
+      }
+      return res
+        .status(500)
+        .json({ message: '로그인 실패', statusCode: 500 });
     }
   }
 
