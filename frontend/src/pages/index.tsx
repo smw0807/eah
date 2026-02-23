@@ -29,6 +29,7 @@ export default function Home() {
     isLoading: isAuctionsLoading,
     refetch: refetchAuctions,
   } = useGetAuctions(filterParams);
+  console.log(auctions);
 
   useEffect(() => {
     refetchAuctions();
@@ -69,9 +70,11 @@ export default function Home() {
       {/* 메인 컨텐츠 영역 */}
       <div className="flex-1">
         <h1 className="text-foreground mb-6 text-2xl font-bold">경매 상품</h1>
-        {auctions && Array.isArray(auctions) && auctions.length > 0 ? (
+        {auctions.data &&
+        Array.isArray(auctions.data) &&
+        auctions.data.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {auctions.map((auction: Auction) => (
+            {auctions.data.map((auction: Auction) => (
               <AuctionCard key={auction.id} auction={auction} />
             ))}
           </div>
