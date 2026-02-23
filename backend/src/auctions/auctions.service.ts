@@ -20,7 +20,13 @@ export class AuctionsService {
     maxPrice: SearchAuctionsQuery['maxPrice'],
     search: SearchAuctionsQuery['search'],
     status: SearchAuctionsQuery['status'],
-  ): Promise<Auction[]> {
+    page: SearchAuctionsQuery['page'],
+    limit: SearchAuctionsQuery['limit'],
+  ): Promise<{ data: Auction[]; total: number; page: number; limit: number }> {
+    const PAGE_SIZE = Math.min(Number(limit) || 20, 100);
+    const PAGE = Math.max(Number(page) || 1, 1);
+    const skip = (PAGE - 1) * PAGE_SIZE;
+
     const where: Prisma.AuctionWhereInput = {
       AND: [
         category && category !== 'ALL' ? { category: { code: category } } : {},
@@ -40,42 +46,39 @@ export class AuctionsService {
     };
     let orderBy: Prisma.AuctionOrderByWithRelationInput = {};
     if (sort === 'createdAt') {
-      orderBy = {
-        createdAt: Prisma.SortOrder.desc,
-      };
+      orderBy = { createdAt: Prisma.SortOrder.desc };
     } else if (sort === 'minPrice') {
-      orderBy = {
-        currentPrice: Prisma.SortOrder.asc,
-      };
+      orderBy = { currentPrice: Prisma.SortOrder.asc };
     } else if (sort === 'maxPrice') {
-      orderBy = {
-        currentPrice: Prisma.SortOrder.desc,
-      };
+      orderBy = { currentPrice: Prisma.SortOrder.desc };
     }
-    const auctions = await this.prisma.auction.findMany({
-      where,
-      include: {
-        seller: {
-          select: {
-            name: true,
-            nickname: true,
-            email: true,
+
+    const [auctions, total] = await this.prisma.$transaction([
+      this.prisma.auction.findMany({
+        where,
+        include: {
+          seller: {
+            select: {
+              name: true,
+              nickname: true,
+              email: true,
+            },
+          },
+          category: true,
+          subCategory: true,
+          bids: {
+            orderBy: { createdAt: Prisma.SortOrder.desc },
+            take: 1, // 목록에서는 최신 입찰 1건만 포함
           },
         },
-        category: true,
-        subCategory: true,
-        bids: {
-          include: {
-            bidder: true,
-          },
-          orderBy: {
-            createdAt: sort === 'createdAt' ? 'desc' : 'asc',
-          } as any,
-        },
-      },
-      orderBy,
-    });
-    return auctions;
+        orderBy,
+        skip,
+        take: PAGE_SIZE,
+      }),
+      this.prisma.auction.count({ where }),
+    ]);
+
+    return { data: auctions, total, page: PAGE, limit: PAGE_SIZE };
   }
 
   // 경매 생성

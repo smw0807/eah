@@ -43,6 +43,10 @@ export class AuctionsController {
     search: SearchAuctionsQuery['search'],
     @Query('status')
     status: SearchAuctionsQuery['status'],
+    @Query('page')
+    page: SearchAuctionsQuery['page'],
+    @Query('limit')
+    limit: SearchAuctionsQuery['limit'],
   ) {
     return this.auctionsService.getAuctions(
       category,
@@ -51,6 +55,8 @@ export class AuctionsController {
       maxPrice,
       search,
       status,
+      page,
+      limit,
     );
   }
 

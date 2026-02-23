@@ -11,7 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { AuctionsService } from './auctions.service';
 import { AuthService } from 'src/auth/auth.service';
-import { AuctionStatus } from 'generated/prisma/enums';
+import { AuctionStatus, Bid } from 'generated/prisma/client';
 
 interface AuctionUpdatePayload {
   auctionId: number;
@@ -28,7 +28,8 @@ interface AuctionUpdatePayload {
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    // CORS_ORIGIN은 Joi 스키마에서 required()로 강제되므로 항상 설정됨
+    origin: process.env.CORS_ORIGIN,
     credentials: true,
   },
   namespace: '/bid',
@@ -148,13 +149,19 @@ export class AuctionsGateway
   async handleBidCreated(auctionId: number) {
     const auction = await this.auctionsService.getAuctionDetail(auctionId);
     if (!auction) return;
-    // bids는 getAuctionDetail에서 포함되므로 타입 단언 사용
-    const auctionWithBids = auction as any;
+    // getAuctionDetail은 bids를 include하지만 반환 타입이 Auction이므로 명시적 단언
+    const rawBids = (auction as typeof auction & { bids: Bid[] }).bids ?? [];
+    const bids = rawBids.map((b) => ({
+      id: b.id,
+      auctionId: b.auctionId,
+      bidderId: b.bidderId,
+      amount: b.amount.toNumber(),
+    }));
 
     this.broadcastAuctionUpdate(auctionId, {
       auctionId,
       currentPrice: auction.currentPrice?.toString() || undefined,
-      bids: auctionWithBids.bids || [],
+      bids,
       status: auction.status,
       winningBidId: auction.winningBidId,
     });

@@ -5,4 +5,6 @@ export type SearchAuctionsQuery = {
   minPrice?: number;
   maxPrice?: number;
   status?: string;
+  page?: number;
+  limit?: number;
 };

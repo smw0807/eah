@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Headers,
+  HttpException,
   Logger,
   Post,
   Res,
@@ -50,6 +51,10 @@ export class AuthController {
         .json({ message: '회원가입 성공', statusCode: 201 });
     } catch (error) {
       this.logger.error(error, 'signup');
+      // BadRequestException 등 HTTP 예외는 그대로 전파
+      if (error instanceof HttpException) {
+        throw error;
+      }
       return res
         .status(500)
         .json({ message: '회원가입 실패', statusCode: 500 });

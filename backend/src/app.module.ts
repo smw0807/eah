@@ -13,11 +13,25 @@ import { AuctionsModule } from './auctions/auctions.module';
 import { ImagesModule } from './images/images.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule,
     ScheduleModule.forRoot(), // 스케줄러 모듈 등록
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000, // 1분 window
+        limit: 60,  // 분당 60회
+      },
+      {
+        name: 'strict',
+        ttl: 60000, // 1분 window
+        limit: 10,  // 입찰 등 민감 엔드포인트: 분당 10회
+      },
+    ]),
     UsersModule,
     PrismaModule,
     UtilsModule,
@@ -30,6 +44,12 @@ import { ScheduleModule } from '@nestjs/schedule';
     SupabaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard, // 전역 레이트 리미팅
+    },
+  ],
 })
 export class AppModule {}

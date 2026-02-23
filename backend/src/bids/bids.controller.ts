@@ -7,21 +7,15 @@ import {
   UseGuards,
   Param,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { BidsService } from './bids.service';
 import { BadRequestException } from '@nestjs/common';
 import { Body } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
 import { CurrentUser } from 'src/auth/decorator/current.user';
-import {
-  AuctionStatus,
-  Bid,
-  Prisma,
-  Role,
-  User,
-} from 'generated/prisma/client';
+import { AuctionStatus, Role, User } from 'generated/prisma/client';
 import { RoleGuard } from 'src/auth/guard/role.guard';
 import { RBAC } from 'src/auth/decorator/rbac';
-import { AuctionsGateway } from 'src/auctions/auctions.gateway';
 import { AccountsService } from 'src/accounts/accounts.service';
 import { AuctionsService } from 'src/auctions/auctions.service';
 
@@ -29,7 +23,6 @@ import { AuctionsService } from 'src/auctions/auctions.service';
 export class BidsController {
   constructor(
     private readonly bidsService: BidsService,
-    private readonly auctionsGateway: AuctionsGateway,
     private readonly auctionsService: AuctionsService,
     private readonly accountsService: AccountsService,
   ) {}
@@ -80,6 +73,7 @@ export class BidsController {
 
   // 즉시구매 생성
   @Post('buyout')
+  @Throttle({ strict: { ttl: 60000, limit: 10 } })
   @UseGuards(AuthGuard)
   async createBuyout(
     @CurrentUser() user: User,
@@ -89,11 +83,26 @@ export class BidsController {
       throw new BadRequestException('Auction ID is required');
     }
     const auctionId = body.auctionId;
-    // 경매 상품 즉시구매 가격 조회
-    const buyoutPrice =
-      await this.auctionsService.getAuctionBuyoutPrice(+auctionId);
-    if (!buyoutPrice) {
+
+    // 경매 정보 조회
+    const auction = await this.auctionsService.getAuctionDetail(+auctionId);
+    if (!auction) {
+      throw new BadRequestException('경매를 찾을 수 없습니다.');
+    }
+
+    // 진행 중인 경매인지 확인
+    if (auction.status !== AuctionStatus.OPEN) {
+      throw new BadRequestException('진행 중인 경매가 아닙니다.');
+    }
+
+    // 즉시구매 가격 확인
+    if (!auction.buyoutPrice) {
       throw new BadRequestException('즉시구매 가격이 설정되지 않았습니다.');
+    }
+
+    // 판매자는 즉시구매 불가
+    if (auction.sellerId === user.id) {
+      throw new BadRequestException('판매자는 즉시구매할 수 없습니다.');
     }
 
     // 사용자 잔액 조회
@@ -107,7 +116,7 @@ export class BidsController {
     const accountLockedBalanceAmount = accountLockedBalance?.toNumber() ?? 0;
     const accountBalanceAmount = accountBalance?.toNumber() ?? 0;
     const availableBalance = accountBalanceAmount - accountLockedBalanceAmount;
-    const buyoutPriceAmount = buyoutPrice.toNumber();
+    const buyoutPriceAmount = auction.buyoutPrice.toNumber();
 
     if (availableBalance < buyoutPriceAmount) {
       throw new BadRequestException(
@@ -115,52 +124,27 @@ export class BidsController {
       );
     }
 
-    // 경매 정보 조회 (판매자 ID 확인용)
-    const auction = await this.auctionsService.getAuctionDetail(+auctionId);
-    if (!auction) {
-      throw new BadRequestException('경매를 찾을 수 없습니다.');
-    }
-
+    // 이전 최고 입찰자 정보 조회
     const previousBids = await this.bidsService.getAuctionBids(+auctionId);
-
     const firstBid = previousBids[0];
+    const previousBidderId = firstBid?.bidderId;
+    const previousAmount = firstBid?.amount.toNumber();
 
-    const lastAmount = firstBid?.amount.toNumber();
-    const lastBidderId = firstBid?.bidderId;
-    const buyoutAmount = auction.buyoutPrice?.toNumber() ?? 0;
-
-    // 마지막 입찰자 잠금 금액 해제
-    await this.accountsService.decrementLockedAmount(+lastBidderId, lastAmount);
-    // 즉시구매자 현재 잔액 차감
-    await this.accountsService.deductCurrentAmount(+user.id, buyoutAmount);
-
-    // 판매자에게 즉시구매 가격 입금
-    const sellerId = auction.sellerId;
-    await this.accountsService.depositToSeller(sellerId, buyoutAmount);
-
-    // 즉시구매 생성
-    const buyerId = user.id;
-    const createdBid = await this.bidsService.createBuyout(+auctionId, buyerId);
-
-    // WebSocket으로 실시간 업데이트 브로드캐스트
-    await this.auctionsGateway.handleBidCreated(+auctionId);
-    await this.auctionsGateway.handleAuctionStatusChange(
+    // 트랜잭션으로 잔액 처리 + 입찰 생성 + 경매 종료
+    await this.bidsService.createBuyout(
       +auctionId,
-      AuctionStatus.CLOSED as AuctionStatus,
+      user.id,
+      auction.sellerId,
+      previousBidderId,
+      previousAmount,
     );
 
-    // 경매 상품 winning_bid_id 업데이트
-    await this.auctionsService.updateAuctionWinningBidId(
-      +auctionId,
-      createdBid.id,
-    );
-
-    // return createdBid;
     return { message: '즉시구매 완료' };
   }
 
   // 입찰 생성
   @Post('create')
+  @Throttle({ strict: { ttl: 60000, limit: 10 } })
   @UseGuards(AuthGuard)
   async createBid(
     @Body()
@@ -189,8 +173,24 @@ export class BidsController {
     if (!auction) {
       throw new BadRequestException('경매를 찾을 수 없습니다.');
     }
+
+    // 진행 중인 경매인지 확인
+    if (auction.status !== AuctionStatus.OPEN) {
+      throw new BadRequestException('진행 중인 경매가 아닙니다.');
+    }
+
+    // 판매자는 입찰 불가
     if (auction.sellerId === user.id) {
       throw new BadRequestException('판매자는 입찰할 수 없습니다.');
+    }
+
+    // 최소 입찰 단계 검증
+    const currentPrice = auction.currentPrice?.toNumber() ?? auction.startPrice.toNumber();
+    const minBidStep = auction.minBidStep.toNumber();
+    if (minBidStep > 0 && amount < currentPrice + minBidStep) {
+      throw new BadRequestException(
+        `입찰 금액은 현재가(${currentPrice.toLocaleString()}원)보다 최소 ${minBidStep.toLocaleString()}원 이상이어야 합니다.`,
+      );
     }
 
     // 경매 상품에 마지막 입찰자인지 확인
@@ -218,33 +218,14 @@ export class BidsController {
       throw new BadRequestException('현재 잔액이 입찰 금액보다 부족합니다.');
     }
 
-    // 입찰 생성 (이전 입찰자 정보 포함)
+    // 트랜잭션으로 입찰 생성 + 잔액 처리 + 현재가 업데이트 원자적 처리
     const createdBid = await this.bidsService.createBid({
       auctionId: +auctionId,
       bidderId: user.id,
       amount: amount,
     });
 
-    // 이전 입찰자가 있고, 새로운 입찰이 더 높으면 이전 입찰자의 잠금 해제
-    const bidWithPrevious = createdBid as Bid & {
-      previousBidderId?: number;
-      previousAmount?: Prisma.Decimal;
-    };
-    if (bidWithPrevious.previousBidderId && bidWithPrevious.previousAmount) {
-      await this.accountsService.decrementLockedAmount(
-        bidWithPrevious.previousBidderId,
-        bidWithPrevious.previousAmount.toNumber(),
-      );
-    }
-
-    // 현재 사용자의 잔액 잠금 (currentAmount 감소, lockedAmount 증가)
-    await this.accountsService.incrementLockedAmount(+user.id, amount);
-
-    // 응답에서 내부 정보 제거
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { previousBidderId, previousAmount, ...responseBid } =
-      bidWithPrevious;
-    return responseBid;
+    return createdBid;
   }
 
   // 입찰 수정
