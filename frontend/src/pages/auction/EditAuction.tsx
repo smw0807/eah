@@ -165,13 +165,6 @@ export default function EditAuction() {
     }
 
     const actionLabel = isEditMode ? "상품수정" : "상품등록";
-    console.log(title,
-      description,
-      startPrice,
-      minBidStep,
-      buyoutPrice,
-      startAt,
-      endAt);
     openAlertModal.actions.open({
       title: actionLabel,
       description: `${actionLabel}을 진행하시겠습니까?`,

@@ -3,7 +3,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatus, Prisma } from 'generated/prisma/client';
 import { AuctionsGateway } from './auctions.gateway';
-import { AccountsService } from 'src/accounts/accounts.service';
 
 @Injectable()
 export class AuctionsScheduler {
@@ -12,7 +11,6 @@ export class AuctionsScheduler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auctionsGateway: AuctionsGateway,
-    private readonly accountsService: AccountsService,
   ) {}
 
   // 1분마다 실행
@@ -33,35 +31,34 @@ export class AuctionsScheduler {
   private async handleScheduledAuctions() {
     const now = new Date();
 
-    const scheduledAuctions = await this.prisma.auction.findMany({
+    // updateMany로 한 번에 처리 (개별 update보다 효율적)
+    const result = await this.prisma.auction.updateMany({
       where: {
         status: AuctionStatus.SCHEDULED,
-        startAt: {
-          lte: now, // startAt <= now
-        },
+        startAt: { lte: now },
       },
+      data: { status: AuctionStatus.OPEN },
     });
 
-    if (scheduledAuctions.length === 0) {
-      return;
-    }
+    if (result.count === 0) return;
 
-    this.logger.log(`${scheduledAuctions.length}개의 경매를 시작 처리합니다.`);
+    this.logger.log(`${result.count}개의 경매를 시작 처리합니다.`);
 
-    for (const auction of scheduledAuctions) {
-      await this.prisma.auction.update({
-        where: { id: auction.id },
-        data: {
-          status: AuctionStatus.OPEN,
-        },
-      });
+    // WebSocket 브로드캐스트: 변경된 경매 목록 조회 후 알림
+    const openedAuctions = await this.prisma.auction.findMany({
+      where: {
+        status: AuctionStatus.OPEN,
+        startAt: { lte: now },
+        // 방금 열린 항목만: updatedAt이 now에 가까운 것
+      },
+      select: { id: true },
+    });
 
-      // WebSocket으로 상태 변경 브로드캐스트
+    for (const auction of openedAuctions) {
       await this.auctionsGateway.handleAuctionStatusChange(
         auction.id,
         AuctionStatus.OPEN,
       );
-
       this.logger.log(`경매 ID ${auction.id} 시작 처리 완료`);
     }
   }
@@ -73,26 +70,16 @@ export class AuctionsScheduler {
     const expiredAuctions = await this.prisma.auction.findMany({
       where: {
         status: AuctionStatus.OPEN,
-        endAt: {
-          lte: now, // endAt <= now
-        },
+        endAt: { lte: now },
       },
       include: {
-        seller: true,
         bids: {
-          include: {
-            bidder: true,
-          },
-          orderBy: {
-            amount: 'desc',
-          },
+          orderBy: { amount: 'desc' },
         },
       },
     });
 
-    if (expiredAuctions.length === 0) {
-      return;
-    }
+    if (expiredAuctions.length === 0) return;
 
     this.logger.log(`${expiredAuctions.length}개의 경매를 종료 처리합니다.`);
 
@@ -100,25 +87,40 @@ export class AuctionsScheduler {
       try {
         const highestBid = auction.bids[0];
 
-        // 경매 상태를 CLOSED로 변경
-        await this.prisma.auction.update({
-          where: { id: auction.id },
-          data: {
-            status: AuctionStatus.CLOSED,
-            winningBidId: highestBid ? highestBid.id : null,
-          },
+        // 정산 + 상태 변경을 하나의 트랜잭션으로 처리
+        await this.prisma.$transaction(async (tx) => {
+          // 경매 상태를 CLOSED로 변경
+          await tx.auction.update({
+            where: { id: auction.id },
+            data: {
+              status: AuctionStatus.CLOSED,
+              winningBidId: highestBid ? highestBid.id : null,
+            },
+          });
+
+          if (!highestBid) return;
+
+          const winningAmount = highestBid.amount;
+          const winningBidderId = highestBid.bidderId;
+
+          // 낙찰자의 잠금 금액 해제 (currentAmount는 입찰 시 이미 차감됨)
+          await tx.userAccount.update({
+            where: { userId: winningBidderId },
+            data: {
+              lockedAmount: { decrement: winningAmount },
+            },
+          });
+
+          // 판매자에게 낙찰 금액 입금
+          await tx.userAccount.update({
+            where: { userId: auction.sellerId },
+            data: {
+              currentAmount: { increment: winningAmount },
+            },
+          });
         });
 
-        // 입찰 내역이 있는 경우 금액 정산 처리
-        if (auction.bids.length > 0) {
-          await this.settleAuction(auction.id, auction.sellerId, highestBid);
-        } else {
-          this.logger.log(
-            `경매 ID ${auction.id}: 입찰 내역이 없어 금액 정산을 건너뜁니다.`,
-          );
-        }
-
-        // WebSocket으로 상태 변경 브로드캐스트
+        // WebSocket 브로드캐스트는 트랜잭션 외부에서 실행
         await this.auctionsGateway.handleAuctionStatusChange(
           auction.id,
           AuctionStatus.CLOSED,
@@ -134,59 +136,5 @@ export class AuctionsScheduler {
         );
       }
     }
-  }
-
-  // 경매 종료 시 금액 정산 처리
-  private async settleAuction(
-    auctionId: number,
-    sellerId: number,
-    winningBid:
-      | { id: number; bidderId: number; amount: Prisma.Decimal }
-      | undefined,
-  ) {
-    if (!winningBid) {
-      // 낙찰자가 없는 경우: 모든 입찰자들의 잠금 금액 해제
-      this.logger.log(`경매 ID ${auctionId}: 낙찰자가 없습니다.`);
-      return;
-    }
-
-    // 1. 낙찰자가 있는 경우
-    const winningAmount = winningBid.amount.toNumber();
-    const winningBidderId = winningBid.bidderId;
-
-    this.logger.log(
-      `경매 ID ${auctionId}: 낙찰 금액 ${winningAmount}원, 낙찰자 ${winningBidderId}, 판매자 ${sellerId}`,
-    );
-
-    // 2. 낙찰자의 잠금 금액 해제
-    try {
-      await this.accountsService.deductWinningBidAmount(
-        winningBidderId,
-        winningAmount,
-      );
-      this.logger.log(
-        `낙찰자 ${winningBidderId}의 잠금 금액 ${winningAmount}원 해제 완료`,
-      );
-    } catch (error: any) {
-      this.logger.error(
-        `낙찰자 ${winningBidderId}의 잠금 금액 해제 실패: ${error?.message}`,
-      );
-      throw error;
-    }
-
-    // 3. 판매자에게 낙찰 금액 입금
-    try {
-      await this.accountsService.depositToSeller(sellerId, winningAmount);
-      this.logger.log(
-        `판매자 ${sellerId}에게 낙찰 금액 ${winningAmount}원 입금 완료`,
-      );
-    } catch (error: any) {
-      this.logger.error(`판매자 ${sellerId}에게 입금 실패: ${error?.message}`);
-      throw error;
-    }
-
-    this.logger.log(
-      `경매 ID ${auctionId} 금액 정산 완료: 낙찰자 ${winningBidderId} → 판매자 ${sellerId} (${winningAmount}원)`,
-    );
   }
 }

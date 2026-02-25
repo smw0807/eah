@@ -5,7 +5,7 @@ import AuctionCard from "@/components/auction/AuctionCard";
 import { useGetAuctions } from "@/hooks/queries/auction/useGetAuctions";
 import { useTopCategory } from "@/hooks/queries/useTopCategory";
 import type { Auction, SearchAuctionsQuery } from "@/models/auction";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router";
 
 export default function Home() {
@@ -19,24 +19,32 @@ export default function Home() {
     minPrice: 0,
     maxPrice: 0,
     status: "",
+    page: 1,
+    limit: 20,
   });
 
   const { data: topCategories, isLoading: isTopCategoriesLoading } =
     useTopCategory();
 
   const {
-    data: auctions,
+    data: auctionsResponse,
     isLoading: isAuctionsLoading,
-    refetch: refetchAuctions,
+    isError: isAuctionsError,
   } = useGetAuctions(filterParams);
-  console.log(auctions);
 
-  useEffect(() => {
-    refetchAuctions();
-  }, [filterParams]);
+  // queryKey에 filterParams가 포함되므로 필터 변경 시 자동 재조회됨
+  const auctionList = auctionsResponse?.data ?? [];
 
   if (isAuctionsLoading) {
     return <div>Loading...</div>;
+  }
+
+  if (isAuctionsError) {
+    return (
+      <div className="text-muted-foreground flex h-64 items-center justify-center rounded-lg border border-dashed">
+        <p>경매 목록을 불러오는데 실패했습니다.</p>
+      </div>
+    );
   }
 
   return (
@@ -54,14 +62,14 @@ export default function Home() {
             currentCategory={currentCategory}
             setSearchParams={(params) => {
               setSearchParams(params);
-              setFilterParams({ ...filterParams, ...params });
+              setFilterParams({ ...filterParams, ...params, page: 1 });
             }}
           />
 
           {/* 필터 섹션 */}
           <FilterSection
             setFilterParams={(params) =>
-              setFilterParams({ ...filterParams, ...params })
+              setFilterParams({ ...filterParams, ...params, page: 1 })
             }
           />
         </nav>
@@ -70,11 +78,9 @@ export default function Home() {
       {/* 메인 컨텐츠 영역 */}
       <div className="flex-1">
         <h1 className="text-foreground mb-6 text-2xl font-bold">경매 상품</h1>
-        {auctions.data &&
-        Array.isArray(auctions.data) &&
-        auctions.data.length > 0 ? (
+        {auctionList.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {auctions.data.map((auction: Auction) => (
+            {auctionList.map((auction: Auction) => (
               <AuctionCard key={auction.id} auction={auction} />
             ))}
           </div>

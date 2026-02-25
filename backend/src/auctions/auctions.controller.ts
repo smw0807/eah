@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -10,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuctionsService } from './auctions.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
 import {
   AuctionCreateInput,
@@ -27,6 +29,7 @@ export class AuctionsController {
     private readonly auctionsService: AuctionsService,
     private readonly bidsService: BidsService,
     private readonly auctionsGateway: AuctionsGateway,
+    private readonly prisma: PrismaService,
   ) { }
 
   @Get()
@@ -93,6 +96,19 @@ export class AuctionsController {
     if (auction.imageUrl && !auction.imageUrl.startsWith('https://')) {
       throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
     }
+
+    const subCategory = await this.prisma.category.findUnique({
+      where: { id: auction.subCategoryId },
+    });
+    if (!subCategory) {
+      throw new NotFoundException('서브카테고리를 찾을 수 없습니다.');
+    }
+    if (subCategory.parentId !== auction.categoryId) {
+      throw new BadRequestException(
+        '선택한 서브카테고리가 해당 카테고리에 속하지 않습니다.',
+      );
+    }
+
     return this.auctionsService.createAuction(auction, user.id);
   }
 
@@ -221,9 +237,8 @@ export class AuctionsController {
     return this.auctionsService.getMyBids(+user.id);
   }
 
-  // 경매 상세 정보 조회
+  // 경매 상세 정보 조회 (비로그인 접근 허용)
   @Get(':id')
-  @UseGuards(AuthGuard)
   async getAuctionDetail(
     @Param('id')
     id: number,

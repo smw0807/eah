@@ -1,9 +1,13 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { SupabaseService } from 'src/supabase/supabase.service';
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 @Injectable()
 export class ImagesService {
@@ -38,6 +42,25 @@ export class ImagesService {
   }
 
   async uploadImage(file: Express.Multer.File, userId: number) {
+    // 파일 존재 여부 확인
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException('업로드할 파일이 없습니다.');
+    }
+
+    // 파일 크기 검증 (최대 10MB)
+    if (file.buffer.length > MAX_FILE_SIZE_BYTES) {
+      throw new BadRequestException(
+        `파일 크기는 최대 ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB까지 허용됩니다.`,
+      );
+    }
+
+    // MIME 타입 검증
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        `허용되지 않는 파일 형식입니다. 허용 형식: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      );
+    }
+
     const fileExtension = file.originalname.split('.').pop() || 'webp';
     const fileName = `${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
     const filePath = `${userId}/${fileName}`;

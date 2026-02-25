@@ -29,6 +29,8 @@ export type SearchAuctionsQuery = {
   minPrice?: number;
   maxPrice?: number;
   status?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type Auction = {
@@ -75,6 +77,13 @@ export type Bid = {
   auctionId: number;
   bidderId: number;
   amount: number;
+};
+
+export type AuctionsResponse = {
+  data: Auction[];
+  total: number;
+  page: number;
+  limit: number;
 };
 
 export type AuctionUpdateInput = {

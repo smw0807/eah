@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-// @ts-ignore - socket.io-client will be installed
 import { io, Socket } from "socket.io-client";
 import { useAuthState } from "@/stores/auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,6 +33,10 @@ export function useAuctionWebSocket(auctionId: number | undefined) {
         token: accessToken,
       },
       transports: ["websocket", "polling"],
+      reconnection: true,        // 자동 재연결 활성화
+      reconnectionAttempts: 5,   // 최대 5회 재시도
+      reconnectionDelay: 1000,   // 1초 후 재시도
+      reconnectionDelayMax: 5000, // 최대 5초 간격
     });
 
     socketRef.current = socket;
@@ -50,30 +53,26 @@ export function useAuctionWebSocket(auctionId: number | undefined) {
       setIsConnected(false);
     });
 
-    // 경매 업데이트 수신
+    // 경매 업데이트 수신 - setQueryData로 캐시를 직접 업데이트(별도 네트워크 요청 없음)
     socket.on("auctionUpdate", (update: AuctionUpdate) => {
-      // React Query 캐시 업데이트
-      queryClient.setQueryData(["auction", auctionId], (oldData: any) => {
-        if (!oldData) return oldData;
-
-        return {
-          ...oldData,
-          currentPrice: update.currentPrice ?? oldData.currentPrice,
-          status: update.status ?? oldData.status,
-          winningBidId: update.winningBidId ?? oldData.winningBidId,
-          bids: update.bids ?? oldData.bids,
-        };
-      });
-
-      // 입찰 목록 쿼리도 무효화하여 재조회
-      queryClient.invalidateQueries({
-        queryKey: ["auction", auctionId],
-      });
+      queryClient.setQueryData(
+        ["auction", auctionId],
+        (oldData: Record<string, unknown> | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            currentPrice: update.currentPrice ?? oldData.currentPrice,
+            status: update.status ?? oldData.status,
+            winningBidId: update.winningBidId ?? oldData.winningBidId,
+            bids: update.bids ?? oldData.bids,
+          };
+        },
+      );
     });
 
-    // 에러 처리
+    // 에러 처리 (재연결은 socket.io가 자동 처리)
     socket.on("connect_error", (error: Error) => {
-      console.error("WebSocket 연결 오류:", error);
+      console.error("WebSocket 연결 오류:", error.message);
       setIsConnected(false);
     });
 

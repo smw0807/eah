@@ -21,7 +21,11 @@ export class AuthGuard implements CanActivate {
       if (!token) {
         throw new UnauthorizedException('Invalid token');
       }
-      const tokenValue = token.split(' ')[1];
+      const parts = token.trim().split(' ');
+      if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) {
+        throw new UnauthorizedException('Invalid token format');
+      }
+      const tokenValue = parts[1];
 
       const decoded = await this.authService.verifyToken(tokenValue);
       if (!decoded) {

@@ -1,6 +1,7 @@
 import { get, patch, post } from "@/lib/fetch";
 import type {
   AuctionCreateInput,
+  AuctionsResponse,
   AuctionUpdateInput,
   SearchAuctionsQuery,
 } from "@/models/auction";
@@ -17,10 +18,20 @@ export const getAuctions = async ({
   minPrice,
   maxPrice,
   status,
-}: SearchAuctionsQuery) => {
-  const response = await get(
-    `/auctions?category=${category}&sort=${sort}&search=${search}&minPrice=${minPrice}&maxPrice=${maxPrice}&status=${status}`,
-  );
+  page = 1,
+  limit = 20,
+}: SearchAuctionsQuery): Promise<AuctionsResponse> => {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (sort) params.set("sort", sort);
+  if (search) params.set("search", search);
+  if (minPrice) params.set("minPrice", String(minPrice));
+  if (maxPrice) params.set("maxPrice", String(maxPrice));
+  if (status) params.set("status", status);
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+
+  const response = await get(`/auctions?${params.toString()}`);
   return response.json();
 };
 
