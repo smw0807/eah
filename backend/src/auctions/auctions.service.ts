@@ -29,17 +29,23 @@ export class AuctionsService {
     const PAGE = Math.max(Number(page) || 1, 1);
     const skip = (PAGE - 1) * PAGE_SIZE;
 
+    // 가격 필터: 전달된 경계만 적용 (한쪽만 주면 그 조건만)
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+    const priceFilter: { gte?: number; lte?: number } = {};
+    if (Number.isFinite(min) && min > 0) priceFilter.gte = min;
+    if (Number.isFinite(max) && max > 0) priceFilter.lte = max;
+    const keyword = typeof search === 'string' ? search.trim() : '';
+
     const where: Prisma.AuctionWhereInput = {
       AND: [
         category && category !== 'ALL' ? { category: { code: category } } : {},
-        (minPrice && minPrice > 0) || (maxPrice && maxPrice > 0)
-          ? { currentPrice: { gte: minPrice ?? 0, lte: maxPrice ?? 0 } }
-          : {},
-        search && search.length > 0
+        Object.keys(priceFilter).length > 0 ? { currentPrice: priceFilter } : {},
+        keyword.length > 0
           ? {
               OR: [
-                { title: { contains: search } },
-                { description: { contains: search } },
+                { title: { contains: keyword, mode: 'insensitive' } },
+                { description: { contains: keyword, mode: 'insensitive' } },
               ],
             }
           : {},
