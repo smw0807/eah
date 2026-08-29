@@ -10,6 +10,7 @@ import { AuctionStatus, Bid, Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionsGateway } from 'src/auctions/auctions.gateway';
 import { PUBLIC_USER_SELECT } from 'src/common/prisma.selects';
+import { paginated, parsePagination, Paginated } from 'src/common/pagination';
 
 // 경매 행 잠금 대기 시간을 감안한 트랜잭션 옵션 (동시 입찰 경합 시 기본 5초로는 부족)
 const TX_OPTIONS = { timeout: 15_000, maxWait: 10_000 } as const;
@@ -330,19 +331,28 @@ export class BidsService {
     });
   }
 
-  // 내가 입찰한 경매 목록 조회
-  async getMyBids(userId: number): Promise<Bid[]> {
-    const bids = await this.prisma.bid.findMany({
-      where: { bidderId: userId },
-      include: {
-        auction: true,
-        bidder: { select: PUBLIC_USER_SELECT },
-        winningFor: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    return bids;
+  // 내가 입찰한 경매 목록 조회 (페이지네이션)
+  async getMyBids(
+    userId: number,
+    page?: number | string,
+    limit?: number | string,
+  ): Promise<Paginated<Bid>> {
+    const { skip, take, page: p, limit: l } = parsePagination(page, limit);
+    const where = { bidderId: userId };
+    const [bids, total] = await this.prisma.$transaction([
+      this.prisma.bid.findMany({
+        where,
+        include: {
+          auction: true,
+          bidder: { select: PUBLIC_USER_SELECT },
+          winningFor: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.bid.count({ where }),
+    ]);
+    return paginated(bids, total, p, l);
   }
 }

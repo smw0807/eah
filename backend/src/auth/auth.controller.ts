@@ -131,6 +131,16 @@ export class AuthController {
     }
   }
 
+  // 리프레시 토큰으로 access 토큰 재발급
+  @Post('refresh')
+  @Throttle({ strict: { ttl: 60000, limit: 30 } })
+  refresh(@Body('refreshToken') refreshToken: string) {
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      throw new UnauthorizedException('리프레시 토큰이 없습니다.');
+    }
+    return this.authService.refreshAccessToken(refreshToken);
+  }
+
   @Post('verify-token')
   async verifyToken(
     @Headers('Authorization') authorization: string | undefined,

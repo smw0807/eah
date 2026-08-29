@@ -31,6 +31,10 @@ export class AuthGuard implements CanActivate {
       if (!decoded) {
         throw new UnauthorizedException('Invalid token');
       }
+      // refresh 토큰을 access 자리에 사용하는 것을 차단
+      if (decoded.type && decoded.type !== 'access') {
+        throw new UnauthorizedException('Invalid token');
+      }
       request['user'] = decoded;
       return true;
     } catch (error) {

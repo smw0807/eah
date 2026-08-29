@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SearchAuctionsQuery } from './models/search.model';
 import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
+import { paginated, parsePagination, Paginated } from 'src/common/pagination';
 import {
   PUBLIC_BID_SELECT,
   PUBLIC_USER_SELECT,
@@ -24,10 +25,11 @@ export class AuctionsService {
     status: SearchAuctionsQuery['status'],
     page: SearchAuctionsQuery['page'],
     limit: SearchAuctionsQuery['limit'],
-  ): Promise<{ data: Auction[]; total: number; page: number; limit: number }> {
-    const PAGE_SIZE = Math.min(Number(limit) || 20, 100);
-    const PAGE = Math.max(Number(page) || 1, 1);
-    const skip = (PAGE - 1) * PAGE_SIZE;
+  ): Promise<Paginated<Auction>> {
+    const { skip, take: PAGE_SIZE, page: PAGE, limit: LIMIT } = parsePagination(
+      page,
+      limit,
+    );
 
     // 가격 필터: 전달된 경계만 적용 (한쪽만 주면 그 조건만)
     const min = Number(minPrice);
@@ -80,7 +82,7 @@ export class AuctionsService {
       this.prisma.auction.count({ where }),
     ]);
 
-    return { data: auctions, total, page: PAGE, limit: PAGE_SIZE };
+    return paginated(auctions, total, PAGE, LIMIT);
   }
 
   // 경매 생성
@@ -203,39 +205,57 @@ export class AuctionsService {
     return auction;
   }
 
-  // 내가 판매한 경매 목록 조회
-  async getMySales(userId: number): Promise<Auction[]> {
-    const auctions = await this.prisma.auction.findMany({
-      where: { sellerId: userId },
-      include: {
-        seller: { select: PUBLIC_USER_SELECT },
-        category: true,
-        subCategory: true,
-        bids: true,
-        winningBid: { select: PUBLIC_BID_SELECT },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    return auctions;
+  // 내가 판매한 경매 목록 조회 (페이지네이션)
+  async getMySales(
+    userId: number,
+    page?: number | string,
+    limit?: number | string,
+  ): Promise<Paginated<Auction>> {
+    const { skip, take, page: p, limit: l } = parsePagination(page, limit);
+    const where = { sellerId: userId };
+    const [auctions, total] = await this.prisma.$transaction([
+      this.prisma.auction.findMany({
+        where,
+        include: {
+          seller: { select: PUBLIC_USER_SELECT },
+          category: true,
+          subCategory: true,
+          bids: true,
+          winningBid: { select: PUBLIC_BID_SELECT },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.auction.count({ where }),
+    ]);
+    return paginated(auctions, total, p, l);
   }
 
-  // 나에게 낙찰된 경매 목록 조회
-  async getMyBids(userId: number): Promise<Auction[]> {
-    const auctions = await this.prisma.auction.findMany({
-      where: { winningBid: { bidderId: userId } },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        seller: { select: PUBLIC_USER_SELECT },
-        category: true,
-        subCategory: true,
-        bids: true,
-        winningBid: { select: PUBLIC_BID_SELECT },
-      },
-    });
-    return auctions;
+  // 나에게 낙찰된 경매 목록 조회 (페이지네이션)
+  async getMyBids(
+    userId: number,
+    page?: number | string,
+    limit?: number | string,
+  ): Promise<Paginated<Auction>> {
+    const { skip, take, page: p, limit: l } = parsePagination(page, limit);
+    const where = { winningBid: { bidderId: userId } };
+    const [auctions, total] = await this.prisma.$transaction([
+      this.prisma.auction.findMany({
+        where,
+        include: {
+          seller: { select: PUBLIC_USER_SELECT },
+          category: true,
+          subCategory: true,
+          bids: true,
+          winningBid: { select: PUBLIC_BID_SELECT },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.auction.count({ where }),
+    ]);
+    return paginated(auctions, total, p, l);
   }
 }

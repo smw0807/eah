@@ -183,15 +183,23 @@ export class AuctionsController {
   // 내가 판매한 경매 목록 조회
   @Get('my-sales')
   @UseGuards(AuthGuard)
-  async getMySales(@CurrentUser() user: User) {
-    return this.auctionsService.getMySales(+user.id);
+  async getMySales(
+    @CurrentUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.auctionsService.getMySales(+user.id, page, limit);
   }
 
   // 나에게 낙찰된 경매 상품
   @Get('my-bids')
   @UseGuards(AuthGuard)
-  async getMyBids(@CurrentUser() user: User) {
-    return this.auctionsService.getMyBids(+user.id);
+  async getMyBids(
+    @CurrentUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.auctionsService.getMyBids(+user.id, page, limit);
   }
 
   // 경매 상세 정보 조회 (비로그인 접근 허용)

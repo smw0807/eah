@@ -6,6 +6,7 @@ import {
   Delete,
   UseGuards,
   Param,
+  Query,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { BidsService } from './bids.service';
@@ -131,7 +132,11 @@ export class BidsController {
   // 내가 입찰한 경매 목록 조회
   @Get('my-bids')
   @UseGuards(AuthGuard)
-  async getMyBids(@CurrentUser() user: User) {
-    return this.bidsService.getMyBids(+user.id);
+  async getMyBids(
+    @CurrentUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.bidsService.getMyBids(+user.id, page, limit);
   }
 }
