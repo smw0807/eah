@@ -13,10 +13,8 @@ import {
 import { AuctionsService } from './auctions.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
-import {
-  AuctionCreateInput,
-  AuctionUpdateInput,
-} from 'generated/prisma/models';
+import { CreateAuctionDto } from './dto/create-auction.dto';
+import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CurrentUser } from 'src/auth/decorator/current.user';
 import { AuctionStatus, User } from 'generated/prisma/client';
 import { SearchAuctionsQuery } from './models/search.model';
@@ -67,34 +65,16 @@ export class AuctionsController {
   @Post()
   @UseGuards(AuthGuard)
   async createAuction(
-    @Body()
-    auction: AuctionCreateInput & { categoryId: number; subCategoryId: number },
+    @Body() auction: CreateAuctionDto,
     @CurrentUser() user: User,
   ) {
-    if (!auction.categoryId || !auction.subCategoryId) {
-      throw new BadRequestException('카테고리와 서브카테고리를 선택해주세요.');
-    }
-    if (
-      typeof auction.categoryId !== 'number' ||
-      typeof auction.subCategoryId !== 'number'
-    ) {
+    if (new Date(auction.startAt) >= new Date(auction.endAt)) {
       throw new BadRequestException(
-        '카테고리와 서브카테고리는 숫자여야 합니다.',
+        '시작일시는 종료일시보다 이전이어야 합니다.',
       );
     }
-    if (auction.categoryId <= 0 || auction.subCategoryId <= 0) {
-      throw new BadRequestException(
-        '카테고리와 서브카테고리는 양수여야 합니다.',
-      );
-    }
-    if (auction.startAt >= auction.endAt) {
-      throw new BadRequestException(
-        '시작일시는 종료일시보다 이전일 수 없습니다.',
-      );
-    }
-
-    if (auction.imageUrl && !auction.imageUrl.startsWith('https://')) {
-      throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
+    if (auction.buyoutPrice != null && auction.buyoutPrice < auction.startPrice) {
+      throw new BadRequestException('즉시구매가는 시작가격보다 높아야 합니다.');
     }
 
     const subCategory = await this.prisma.category.findUnique({
@@ -118,7 +98,7 @@ export class AuctionsController {
   async updateAuction(
     @Param('id')
     id: number,
-    @Body() updateAuction: AuctionUpdateInput,
+    @Body() updateAuction: UpdateAuctionDto,
     @CurrentUser() user: User,
   ) {
     const auction = await this.auctionsService.getAuctionDetail(+id);
@@ -135,43 +115,20 @@ export class AuctionsController {
         '경매 상태가 취소되었으면 수정할 수 없습니다.',
       );
     }
-    if (
-      updateAuction.startAt &&
-      updateAuction.endAt &&
-      updateAuction.startAt >= updateAuction.endAt
-    ) {
+
+    // 최종 시작/종료 일시 교차 검증 (일부만 수정하는 경우 기존 값과 비교)
+    const nextStartAt = updateAuction.startAt
+      ? new Date(updateAuction.startAt)
+      : auction.startAt;
+    const nextEndAt = updateAuction.endAt
+      ? new Date(updateAuction.endAt)
+      : auction.endAt;
+    if (nextStartAt >= nextEndAt) {
       throw new BadRequestException(
-        '시작일시는 종료일시보다 이전일 수 없습니다.',
+        '시작일시는 종료일시보다 이전이어야 합니다.',
       );
     }
-    if (
-      updateAuction.imageUrl &&
-      typeof updateAuction.imageUrl === 'string' &&
-      !updateAuction.imageUrl.startsWith('https://')
-    ) {
-      throw new BadRequestException('이미지 URL은 유효한 URL이어야 합니다.');
-    }
-    if (
-      updateAuction.startPrice &&
-      typeof updateAuction.startPrice === 'number' &&
-      updateAuction.startPrice <= 0
-    ) {
-      throw new BadRequestException('시작가격은 양수여야 합니다.');
-    }
-    if (
-      updateAuction.minBidStep &&
-      typeof updateAuction.minBidStep === 'number' &&
-      updateAuction.minBidStep <= 0
-    ) {
-      throw new BadRequestException('최소 입찰 단위는 양수여야 합니다.');
-    }
-    if (
-      updateAuction.buyoutPrice &&
-      typeof updateAuction.buyoutPrice === 'number' &&
-      updateAuction.buyoutPrice <= 0
-    ) {
-      throw new BadRequestException('즉시구매가는 양수여야 합니다.');
-    }
+
     const bids = await this.bidsService.getAuctionBids(+id);
     if (bids.length > 0) {
       throw new BadRequestException('경매에 입찰이 있으면 수정할 수 없습니다.');

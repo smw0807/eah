@@ -1,11 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Auction, AuctionStatus, Prisma } from 'generated/prisma/client';
-import {
-  AuctionCreateInput,
-  AuctionUpdateInput,
-} from 'generated/prisma/models';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SearchAuctionsQuery } from './models/search.model';
+import { CreateAuctionDto } from './dto/create-auction.dto';
+import { UpdateAuctionDto } from './dto/update-auction.dto';
 import {
   PUBLIC_BID_SELECT,
   PUBLIC_USER_SELECT,
@@ -81,20 +79,19 @@ export class AuctionsService {
 
   // 경매 생성
   async createAuction(
-    auction: AuctionCreateInput & { categoryId: number; subCategoryId: number },
+    auction: CreateAuctionDto,
     sellerId: number,
   ): Promise<Auction> {
     // 경매 시작일이 현재 시간보다 이전일 경우, 경매 상태를 OPEN으로 변경
-    if (new Date(auction.startAt) < new Date()) {
-      auction.status = AuctionStatus.OPEN;
-    } else {
-      auction.status = AuctionStatus.SCHEDULED;
-    }
+    const status =
+      new Date(auction.startAt) < new Date()
+        ? AuctionStatus.OPEN
+        : AuctionStatus.SCHEDULED;
     const newAuction = await this.prisma.auction.create({
       data: {
         title: auction.title,
         description: auction.description ?? null,
-        status: auction.status,
+        status,
         startPrice: auction.startPrice,
         minBidStep: auction.minBidStep,
         currentPrice: auction.startPrice ?? null,
@@ -124,14 +121,18 @@ export class AuctionsService {
     return newAuction;
   }
 
-  // 경매 수정
+  // 경매 수정 (입찰이 없는 경매만 수정 가능하므로 currentPrice도 startPrice에 맞춰 갱신)
   async updateAuction(
     auctionId: number,
-    updateAuction: AuctionUpdateInput,
+    updateAuction: UpdateAuctionDto,
   ): Promise<Auction> {
+    const data: Prisma.AuctionUpdateInput = { ...updateAuction };
+    if (updateAuction.startPrice != null) {
+      data.currentPrice = updateAuction.startPrice;
+    }
     const updatedAuction = await this.prisma.auction.update({
       where: { id: auctionId },
-      data: updateAuction,
+      data,
     });
     return updatedAuction;
   }
