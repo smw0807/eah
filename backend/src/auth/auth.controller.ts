@@ -5,16 +5,35 @@ import {
   Headers,
   HttpException,
   Logger,
+  NotFoundException,
   Post,
   Res,
   UnauthorizedException,
-  ValidationPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
 import { Response } from 'express';
 import { InputSignup } from 'src/users/input/input.signup';
 import { AuthUtils } from 'src/utils/auth.utils';
+
+/**
+ * `Scheme <value>` 형태의 Authorization 헤더에서 값 부분을 안전하게 추출한다.
+ * 헤더가 없거나 형식이 잘못되면 401.
+ */
+function parseAuthorizationHeader(
+  authorization: string | undefined,
+  scheme: 'Basic' | 'Bearer',
+): string {
+  if (!authorization || typeof authorization !== 'string') {
+    throw new UnauthorizedException('인증 정보가 없습니다.');
+  }
+  const [headerScheme, value, ...rest] = authorization.trim().split(/\s+/);
+  if (rest.length > 0 || headerScheme !== scheme || !value) {
+    throw new UnauthorizedException('인증 정보 형식이 올바르지 않습니다.');
+  }
+  return value;
+}
 
 @Controller('auth')
 export class AuthController {
@@ -28,10 +47,8 @@ export class AuthController {
 
   // 회원가입
   @Post('signup')
-  async signup(
-    @Body(new ValidationPipe()) input: InputSignup,
-    @Res() res: Response,
-  ) {
+  @Throttle({ strict: { ttl: 60000, limit: 10 } })
+  async signup(@Body() input: InputSignup, @Res() res: Response) {
     try {
       const { nickname, email } = input;
       // 닉네임 중복 체크
@@ -62,26 +79,23 @@ export class AuthController {
   }
 
   @Post('signin')
+  @Throttle({ strict: { ttl: 60000, limit: 10 } })
   async signin(
-    @Headers('Authorization') authorization: string,
+    @Headers('Authorization') authorization: string | undefined,
     @Res() res: Response,
   ) {
     try {
-      const token = authorization.split(' ');
-      if (token.length !== 2) {
-        throw new UnauthorizedException('토큰이 유효하지 않습니다.');
-      }
-      const tokenValue = token[1];
+      const tokenValue = parseAuthorizationHeader(authorization, 'Basic');
       const decoded = Buffer.from(tokenValue, 'base64').toString('utf-8');
 
-      const [email, password] = decoded.split(':');
+      const sep = decoded.indexOf(':');
+      if (sep < 0) {
+        throw new UnauthorizedException('인증 정보 형식이 올바르지 않습니다.');
+      }
+      const email = decoded.slice(0, sep);
+      const password = decoded.slice(sep + 1);
 
       const user = await this.usersService.getUser('email', email);
-      if (!user) {
-        throw new UnauthorizedException(
-          '이메일 또는 비밀번호가 일치하지 않습니다.',
-        );
-      }
       const isPasswordValid = await this.authUtils.comparePassword(
         password,
         user.passwordHash,
@@ -102,8 +116,14 @@ export class AuthController {
       });
     } catch (error) {
       this.logger.error(error, 'signin');
-      if (error.status === 401) {
-        throw new UnauthorizedException(error.message);
+      // 존재하지 않는 이메일도 자격 증명 오류로 통일 (계정 존재 여부 노출 방지)
+      if (error instanceof NotFoundException) {
+        throw new UnauthorizedException(
+          '이메일 또는 비밀번호가 일치하지 않습니다.',
+        );
+      }
+      if (error instanceof UnauthorizedException) {
+        throw error;
       }
       return res
         .status(500)
@@ -113,19 +133,12 @@ export class AuthController {
 
   @Post('verify-token')
   async verifyToken(
-    @Headers('Authorization') authorization: string,
+    @Headers('Authorization') authorization: string | undefined,
     @Res() res: Response,
   ) {
     try {
-      const token = authorization.split(' ');
-      if (!token) {
-        throw new UnauthorizedException('토큰이 유효하지 않습니다.');
-      }
-      const tokenValue = token[1];
-      if (!tokenValue) {
-        throw new UnauthorizedException('토큰이 유효하지 않습니다.');
-      }
-      const decoded = await this.authService.verifyToken(tokenValue);
+      const tokenValue = parseAuthorizationHeader(authorization, 'Bearer');
+      const decoded = this.authService.verifyToken(tokenValue);
       return res
         .status(200)
         .json({ message: '토큰 검증 성공', statusCode: 200, decoded });

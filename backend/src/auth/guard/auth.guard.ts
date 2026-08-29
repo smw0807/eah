@@ -27,14 +27,21 @@ export class AuthGuard implements CanActivate {
       }
       const tokenValue = parts[1];
 
-      const decoded = await this.authService.verifyToken(tokenValue);
+      const decoded = this.authService.verifyToken(tokenValue);
       if (!decoded) {
         throw new UnauthorizedException('Invalid token');
       }
       request['user'] = decoded;
       return true;
     } catch (error) {
-      this.logger.error(error, 'AuthGuard');
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.warn(`AuthGuard 인증 실패: ${(error as Error)?.name}`);
+      // 만료 토큰은 프론트가 재로그인 유도할 수 있도록 구분
+      if ((error as Error)?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token expired');
+      }
       throw new UnauthorizedException('Invalid token');
     }
   }
