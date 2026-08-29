@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, combine, devtools } from "zustand/middleware";
+import { isJwtExpired } from "@/lib/jwt";
 
 interface AuthState {
   accessToken: string | null;
@@ -19,8 +20,14 @@ export const useAuthStore = create(
           getTokens: () => get(),
           setTokens: (accessToken: string, refreshToken: string) =>
             set({ accessToken, refreshToken }),
+          setAccessToken: (accessToken: string) => set({ accessToken }),
           clearTokens: () => set({ accessToken: null, refreshToken: null }),
-          isAuthenticated: () => !!get().accessToken,
+          // access 가 살아있거나, 만료됐어도 refresh 로 갱신 가능하면 인증 상태로 본다.
+          isAuthenticated: () => {
+            const { accessToken, refreshToken } = get();
+            if (accessToken && !isJwtExpired(accessToken)) return true;
+            return !!refreshToken && !isJwtExpired(refreshToken);
+          },
         },
       })),
       {
