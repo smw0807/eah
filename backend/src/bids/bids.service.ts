@@ -9,6 +9,7 @@ import {
 import { AuctionStatus, Bid, Prisma } from 'generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionsGateway } from 'src/auctions/auctions.gateway';
+import { PUBLIC_USER_SELECT } from 'src/common/prisma.selects';
 
 @Injectable()
 export class BidsService {
@@ -24,7 +25,7 @@ export class BidsService {
     const bids = await this.prisma.bid.findMany({
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {
@@ -42,7 +43,7 @@ export class BidsService {
       },
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {
@@ -60,7 +61,7 @@ export class BidsService {
       },
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {
@@ -76,7 +77,7 @@ export class BidsService {
       where: { bidder: { email: { equals: email, mode: 'insensitive' } } },
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {
@@ -92,7 +93,7 @@ export class BidsService {
       where: { bidderId: userId },
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {
@@ -108,7 +109,7 @@ export class BidsService {
       where: { auctionId },
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {
@@ -290,7 +291,7 @@ export class BidsService {
       where: { bidderId: userId },
       include: {
         auction: true,
-        bidder: true,
+        bidder: { select: PUBLIC_USER_SELECT },
         winningFor: true,
       },
       orderBy: {

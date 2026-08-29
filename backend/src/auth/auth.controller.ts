@@ -45,7 +45,7 @@ export class AuthController {
         throw new BadRequestException('이메일이 이미 존재합니다.');
       }
       const user = await this.authService.signup(input);
-      this.logger.log(user, '회원가입 성공!');
+      this.logger.log(`회원가입 성공! userId=${user.id}, email=${user.email}`);
       return res
         .status(201)
         .json({ message: '회원가입 성공', statusCode: 201 });

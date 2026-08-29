@@ -6,6 +6,10 @@ import {
 } from 'generated/prisma/models';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SearchAuctionsQuery } from './models/search.model';
+import {
+  PUBLIC_BID_SELECT,
+  PUBLIC_USER_SELECT,
+} from 'src/common/prisma.selects';
 
 @Injectable()
 export class AuctionsService {
@@ -57,13 +61,7 @@ export class AuctionsService {
       this.prisma.auction.findMany({
         where,
         include: {
-          seller: {
-            select: {
-              name: true,
-              nickname: true,
-              email: true,
-            },
-          },
+          seller: { select: PUBLIC_USER_SELECT },
           category: true,
           subCategory: true,
           bids: {
@@ -160,25 +158,11 @@ export class AuctionsService {
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
       include: {
-        seller: {
-          select: {
-            name: true,
-            nickname: true,
-            email: true,
-          },
-        },
+        seller: { select: PUBLIC_USER_SELECT },
         category: true,
         subCategory: true,
-        bids: {
-          include: {
-            bidder: true,
-          },
-        },
-        winningBid: {
-          include: {
-            bidder: true,
-          },
-        },
+        bids: { select: PUBLIC_BID_SELECT },
+        winningBid: { select: PUBLIC_BID_SELECT },
       },
     });
     if (!auction) {
@@ -217,11 +201,11 @@ export class AuctionsService {
     const auctions = await this.prisma.auction.findMany({
       where: { sellerId: userId },
       include: {
-        seller: true,
+        seller: { select: PUBLIC_USER_SELECT },
         category: true,
         subCategory: true,
         bids: true,
-        winningBid: true,
+        winningBid: { select: PUBLIC_BID_SELECT },
       },
       orderBy: {
         createdAt: 'desc',
@@ -238,11 +222,11 @@ export class AuctionsService {
         createdAt: 'desc',
       },
       include: {
-        seller: true,
+        seller: { select: PUBLIC_USER_SELECT },
         category: true,
         subCategory: true,
         bids: true,
-        winningBid: true,
+        winningBid: { select: PUBLIC_BID_SELECT },
       },
     });
     return auctions;

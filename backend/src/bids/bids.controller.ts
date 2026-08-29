@@ -27,8 +27,10 @@ export class BidsController {
     private readonly accountsService: AccountsService,
   ) {}
 
-  // 전체 입찰 내역 조회
+  // 전체 입찰 내역 조회 (관리자 전용)
   @Get()
+  @UseGuards(AuthGuard, RoleGuard)
+  @RBAC(Role.ADMIN)
   async getBids() {
     return this.bidsService.getBids();
   }

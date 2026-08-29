@@ -53,9 +53,7 @@ export type Auction = {
   updatedAt: string;
   seller: {
     id: number;
-    name: string;
     nickname: string;
-    email: string;
   };
   category: {
     id: number;
@@ -77,6 +75,11 @@ export type Bid = {
   auctionId: number;
   bidderId: number;
   amount: number;
+  createdAt?: string;
+  bidder?: {
+    id: number;
+    nickname: string;
+  };
 };
 
 export type AuctionsResponse = {
